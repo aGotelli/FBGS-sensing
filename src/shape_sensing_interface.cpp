@@ -3,15 +3,15 @@ This code implements an interface to the FBGS sensing system
 Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toronto Mississauga
 */
 
-#include "fbgs_interface.h"
+#include "shape_sensing_interface.h"
 
-FBGSInterface::FBGSInterface()
+ShapeSensingInterface::ShapeSensingInterface()
 {
 	
 
 }
 
-FBGSInterface::~FBGSInterface()
+ShapeSensingInterface::~ShapeSensingInterface()
 {
 
 }

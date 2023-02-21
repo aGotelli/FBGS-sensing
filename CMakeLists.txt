@@ -7,7 +7,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 #Eigen
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
-find_package(Boost 1.66 REQUIRED COMPONENTS system thread date_time regex serialization)
+find_package(Boost 1.81 REQUIRED COMPONENTS system thread date_time regex serialization)
 
 #include directories
 include_directories(${PROJECT_SOURCE_DIR}/include)

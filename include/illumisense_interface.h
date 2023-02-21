@@ -7,14 +7,14 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 
 
 // This class implements a simple interface to the FBGS sensing system utilizing TCP sockets
-class FBGSInterface
+class IllumiSenseInterface
 {
 public:
 	// Constructor 
-	FBGSInterface();
+	IllumiSenseInterface();
 	
 	// Simple destructor
-	~FBGSInterface();
+	~IllumiSenseInterface();
 
 private:
 
