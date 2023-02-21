@@ -12,9 +12,7 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 
 int main(int argc, char **argv)
 {
-	FBGSInterface fbgs_interface;
 	
-	std::cout << "Hello World!" << std::endl;
 			
 	return 1;
 }
