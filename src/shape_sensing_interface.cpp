@@ -29,9 +29,8 @@ bool ShapeSensingInterface::connect()
 		boost::asio::ip::tcp::resolver::results_type endpoints = m_resolver.resolve(m_ip_address, m_port_number);
 		
 		boost::asio::ip::tcp::endpoint ep = *endpoints;
-		std::cout << ep << std::endl;
 		
-		std::cout << "Establishing connection... "; 
+		std::cout << "Establishing connection to " << ep << " ... "; 
 		
 		//Connect to socket and open connection
 		boost::asio::connect(m_socket, endpoints);
@@ -96,18 +95,153 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
 			//Now read the remaining ASCII string of the current data package
 			size_read = boost::asio::read(m_socket,data,boost::asio::transfer_exactly(data_length));
 			
-			std::cout << size_read << std::endl;
 			
 			data_string.clear();
 			std::istream is2(&data);
 			
-			is2.peek(); // try state of stream
-			while(is2.good())  
+			//Create new, empty sample and set the passed sample to it
+			Sample new_sample;
+			sample = new_sample;
+	
+			//Skip first two entries (date and time)
+			getline(is2,data_string, '\t'); 
+			getline(is2,data_string, '\t'); 
+			
+			//Next string is the sample number
+			getline(is2,data_string, '\t'); 
+			sample.sample_number = std::stoi(data_string);
+			
+			//Next string is number of channels
+			getline(is2,data_string, '\t'); 
+			sample.num_channels = std::stoi(data_string);
+			
+			//Now we run through all channels
+			for(int i = 0; i < sample.num_channels; i++)
 			{
-				getline(is2,data_string,  '\t');     // FBGS uses tab as delimiter
-				std::cout << data_string << std::endl;
-				is2.peek(); // set eof flag if end of data is reached
+				ShapeSensingInterface::Sample::Channel channel;
+				
+				//Next string is channel number
+				getline(is2,data_string, '\t'); 
+				channel.channel_number = std::stoi(data_string);
+				
+				//Next string is number of gratings
+				getline(is2,data_string, '\t'); 
+				channel.num_gratings = std::stoi(data_string);
+				
+				//Next is error status
+				getline(is2,data_string, '\t'); 
+				channel.error_status(0) = std::stoi(data_string);
+				getline(is2,data_string, '\t'); 
+				channel.error_status(1) = std::stoi(data_string);
+				getline(is2,data_string, '\t'); 
+				channel.error_status(2) = std::stoi(data_string);
+				getline(is2,data_string, '\t'); 
+				channel.error_status(3) = std::stoi(data_string);
+				
+				//Next is peak wavelengths
+				channel.peak_wavelengths.resize(channel.num_gratings);
+				for(int j = 0; j < channel.num_gratings; j++)
+				{
+					getline(is2,data_string, '\t'); 
+					channel.peak_wavelengths(j) = std::stod(data_string);
+				}
+				
+				//Next is peak powers
+				channel.peak_powers.resize(channel.num_gratings);
+				for(int j = 0; j < channel.num_gratings; j++)
+				{
+					getline(is2,data_string, '\t'); 
+					channel.peak_powers(j) = std::stod(data_string);
+				}	
+				
+				sample.channels.push_back(channel);
+				
 			}
+			
+			
+			//Now run through the file to the end
+			getline(is2,data_string, '\t'); 
+			int num_sensors = 0;
+			while(data_string == "Curvature [1/cm]")
+			{
+				ShapeSensingInterface::Sample::Sensor sensor;
+				sensor.num_curv_points = sample.channels.at(0 + 4*num_sensors).num_gratings;
+				
+				//Save kappa (curvature) values
+				sensor.kappa.resize(sensor.num_curv_points);
+				for(int j = 0; j < sensor.num_curv_points; j++)
+				{
+					getline(is2,data_string, '\t'); 
+					sensor.kappa(j) = 100*std::stod(data_string); //convert 1/cm to 1/m	
+				}	
+				
+				//Next entry is text field (skip)
+				getline(is2,data_string, '\t'); 
+				
+				//Save phi (curvature angle) values in rad
+				sensor.phi.resize(sensor.num_curv_points);
+				for(int j = 0; j < sensor.num_curv_points; j++)
+				{
+					getline(is2,data_string, '\t'); 
+					sensor.phi(j) = std::stod(data_string);
+				}
+				
+				//Next entry is text field (skip)
+				getline(is2,data_string, '\t'); 	
+				
+				//Next entry is number of shape points
+				getline(is2,data_string, '\t'); 	
+				sensor.num_shape_points = std::stoi(data_string);
+				
+				sensor.shape.resize(sensor.num_shape_points,3);
+				sensor.arc_length.resize(sensor.num_shape_points);
+				
+				//Save all x values and arclength values
+				for(int j = 0; j < sensor.num_shape_points; j++)
+				{
+					//X
+					getline(is2,data_string, '\t'); 
+					sensor.shape(j,0) = 0.01*std::stod(data_string); //convert cm to m
+					//Arc legnth
+					sensor.arc_length(j) = 0.001*j; //1 mm resolution, starting at 0
+				}
+				
+				
+				//Next entry is text field (skip) and again number of shape points (skip too)
+				getline(is2,data_string, '\t');
+				getline(is2,data_string, '\t'); 
+				
+				//Save all y values 
+				for(int j = 0; j < sensor.num_shape_points; j++)
+				{
+					//X
+					getline(is2,data_string, '\t'); 
+					sensor.shape(j,1) = 0.01*std::stod(data_string); //convert cm to m
+				}
+				
+				
+				//Next entry is text field (skip) and again number of shape points (skip too)
+				getline(is2,data_string, '\t');
+				getline(is2,data_string, '\t'); 
+				
+				//Save all z values 
+				for(int j = 0; j < sensor.num_shape_points; j++)
+				{
+					//Z
+					getline(is2,data_string, '\t'); 
+					sensor.shape(j,2) = 0.01*std::stod(data_string); //convert cm to m
+				}
+				
+				
+				//Next entry is either new curvature data (while loop will restart and add new sensor) or new line (no new sensor)
+				getline(is2,data_string, '\t');
+				
+				sample.sensors.push_back(sensor);
+				
+				num_sensors++;
+			}
+			
+			sample.num_sensors = num_sensors;
 			
 			return true;
 					
