@@ -68,7 +68,6 @@ public:
 	
 
 private:
-	std::string stringToHex(const std::string& input);
 	
 	std::string m_ip_address;
 	std::string m_port_number;
