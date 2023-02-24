@@ -26,11 +26,12 @@ bool ShapeSensingInterface::connect()
 	try
 	{
 		//Get endpoints
+		std::cout << "[FBGS] Get endpoints... ";
 		boost::asio::ip::tcp::resolver::results_type endpoints = m_resolver.resolve(m_ip_address, m_port_number);
 		
 		boost::asio::ip::tcp::endpoint ep = *endpoints;
 		
-		std::cout << "Establishing connection to " << ep << " ... "; 
+		std::cout << "Establishing connection to " << ep << "... "; 
 		
 		//Connect to socket and open connection
 		boost::asio::connect(m_socket, endpoints);
@@ -59,7 +60,7 @@ bool ShapeSensingInterface::nextSampleReady()
 	}
 	else
 	{
-		std::cout << "TCP not connected!" << std::endl;
+		std::cout << "[FBGS] TCP not connected!" << std::endl;
 		return false;
 	}
 	
@@ -70,12 +71,12 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
 	if(!m_connected)
 	{
 		
-		std::cout << "TCP not connected or no data available!" << std::endl;
+		std::cout << "[FBGS] TCP not connected!" << std::endl;
 		return false;
 	}
 	else if(m_socket.available() < 4)
 	{
-		std::cout << "Data not ready!" << std::endl;
+		std::cout << "[FBGS] Data not ready!" << std::endl;
 		return false;
 	}	
 	else

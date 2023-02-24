@@ -11,7 +11,6 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 #include <vector>
 #include <Eigen/Dense>
 
-
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 

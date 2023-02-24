@@ -18,13 +18,15 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 
 //defines
 #define SERVER_ADDRESS "192.168.1.11"
-//#define PORT_NUMBER "5001"
-#define PORT_NUMBER "2055"
+//#define PORT_NUMBER "5001" //Default port number for Shape Sensing
+#define PORT_NUMBER "2055" //Default port number for Illumisense
 #define CALIB_FILE "/home/sven/Downloads/PR2022_14_53_01_S01 - calib.txt"
 
 int main(int argc, char **argv)
 {
 	
+
+	//Example code for Shape Sensing Interface
 	
 	//ShapeSensingInterface interface(SERVER_ADDRESS,PORT_NUMBER);
 	//
@@ -92,6 +94,8 @@ int main(int argc, char **argv)
 	
 	
 	
+	//Example code for IllumiSense Interface
+	
 	IllumiSenseInterface interface(SERVER_ADDRESS,PORT_NUMBER,CALIB_FILE);
 	
 	if(!interface.connect())
@@ -133,14 +137,6 @@ int main(int argc, char **argv)
 					
 				}
 			}
-			else
-			{
-				std::cout << "Could not read sample" << std::endl;
-			}
-			
-			
-			
-			
 		}
 	
 	

@@ -10,15 +10,8 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 #include <vector>
 #include <Eigen/Dense>
 
-
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
-
-
-
-
-
-
 
 // This class implements a simple interface to the FBGS sensing system utilizing TCP sockets
 class ShapeSensingInterface
