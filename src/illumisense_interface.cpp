@@ -75,9 +75,10 @@ bool IllumiSenseInterface::connect()
 
 bool IllumiSenseInterface::nextSampleReady()
 {
+	
 	if(m_connected)
 	{
-		return (m_socket.available() > 0);
+		return (m_socket.available() >= 4);
 	}
 	else
 	{
@@ -89,52 +90,54 @@ bool IllumiSenseInterface::nextSampleReady()
 
 bool IllumiSenseInterface::readNextSample(Sample &sample)
 {
-	if(!m_connected || m_socket.available() <= 0)
+	if(!m_connected)
 	{
 		
 		std::cout << "TCP not connected or no data available!" << std::endl;
 		return false;
 	}
+	else if(m_socket.available() < 4)
+	{
+		std::cout << "Data not ready!" << std::endl;
+		return false;
+	}	
 	else
 	{
 		
 		try
 		{
-			boost::asio::streambuf data;
-				
+			char buffer[4];
 			//First read the first 4 bytes to figure out the size of the following ASCII string
-			size_t size_read = boost::asio::read(m_socket,data,boost::asio::transfer_exactly(4));
+			size_t size_read = boost::asio::read(m_socket,boost::asio::buffer(&buffer,4));
+			
+			//Convert the received bytes to signed integer
+			int size = int((unsigned char)(buffer[0]) << 24 |
+            (unsigned char)(buffer[1]) << 16 |
+            (unsigned char)(buffer[2]) << 8 |
+            (unsigned char)(buffer[3]));
+            
+			
+			boost::asio::streambuf data;
+			//Now read the remaining ASCII string of the current data package
+			size_read = boost::asio::read(m_socket,data,boost::asio::transfer_exactly(size));
 			
 			std::string data_string;
 			std::istream is(&data);
-			is >> data_string;
-			
-			std::string hex_string = stringToHex(data_string);
-			
-			int data_length = std::stoi(hex_string,0,16);
-			
-			
-			//Now read the remaining ASCII string of the current data package
-			size_read = boost::asio::read(m_socket,data,boost::asio::transfer_exactly(data_length));
-			
-			
-			data_string.clear();
-			std::istream is2(&data);
 			
 			//Create new, empty sample and set the passed sample to it
 			Sample new_sample;
 			sample = new_sample;
-	
+			
 			//Skip first two entries (date and time)
-			getline(is2,data_string, '\t'); 
-			getline(is2,data_string, '\t'); 
+			getline(is,data_string, '\t'); 
+			getline(is,data_string, '\t'); 
 			
 			//Next string is the sample number
-			getline(is2,data_string, '\t'); 
+			getline(is,data_string, '\t'); 
 			sample.sample_number = std::stoi(data_string);
 			
 			//Next string is number of channels
-			getline(is2,data_string, '\t'); 
+			getline(is,data_string, '\t'); 
 			sample.num_channels = std::stoi(data_string);
 			
 			//Now we run through all channels
@@ -143,28 +146,28 @@ bool IllumiSenseInterface::readNextSample(Sample &sample)
 				IllumiSenseInterface::Sample::Channel channel;
 				
 				//Next string is channel number
-				getline(is2,data_string, '\t'); 
+				getline(is,data_string, '\t'); 
 				channel.channel_number = std::stoi(data_string);
 				
 				//Next string is number of gratings
-				getline(is2,data_string, '\t'); 
+				getline(is,data_string, '\t'); 
 				channel.num_gratings = std::stoi(data_string);
 				
 				//Next is error status
-				getline(is2,data_string, '\t'); 
+				getline(is,data_string, '\t'); 
 				channel.error_status(0) = std::stoi(data_string);
-				getline(is2,data_string, '\t'); 
+				getline(is,data_string, '\t'); 
 				channel.error_status(1) = std::stoi(data_string);
-				getline(is2,data_string, '\t'); 
+				getline(is,data_string, '\t'); 
 				channel.error_status(2) = std::stoi(data_string);
-				getline(is2,data_string, '\t'); 
+				getline(is,data_string, '\t'); 
 				channel.error_status(3) = std::stoi(data_string);
 				
 				//Next is peak wavelengths
 				channel.peak_wavelengths.resize(channel.num_gratings);
 				for(int j = 0; j < channel.num_gratings; j++)
 				{
-					getline(is2,data_string, '\t'); 
+					getline(is,data_string, '\t'); 
 					channel.peak_wavelengths(j) = std::stod(data_string);
 				}
 				
@@ -172,7 +175,7 @@ bool IllumiSenseInterface::readNextSample(Sample &sample)
 				channel.peak_powers.resize(channel.num_gratings);
 				for(int j = 0; j < channel.num_gratings; j++)
 				{
-					getline(is2,data_string, '\t'); 
+					getline(is,data_string, '\t'); 
 					channel.peak_powers(j) = std::stod(data_string);
 				}
 				
@@ -186,7 +189,7 @@ bool IllumiSenseInterface::readNextSample(Sample &sample)
 			
 			//Next is the number of engineered values (strain in our case)
 			//We skip this value since this is the same as the number of all gratings over all channels
-			getline(is2,data_string, '\t'); 
+			getline(is,data_string, '\t'); 
 			
 			
 						
@@ -194,7 +197,7 @@ bool IllumiSenseInterface::readNextSample(Sample &sample)
 			{
 				for(int j = 0; j < sample.channels.at(i).num_gratings; j++)
 				{
-					getline(is2,data_string, '\t'); 
+					getline(is,data_string, '\t'); 
 					sample.channels.at(i).strains(j) = std::stod(data_string);
 				}
 			}
@@ -205,14 +208,14 @@ bool IllumiSenseInterface::readNextSample(Sample &sample)
 			//If we have four channels, each with the same number of gratings, we have one sensor
 			//If we have eight channels, and the first four as well as the last four have the same number of gratings, we have two sensors
 			//This is the maximum the hardware in the lab can currently support
-			int num_sensors = 0;
+			sample.num_sensors = 0;
 			if(sample.num_channels == 4 && sample.channels.at(0).num_gratings == sample.channels.at(1).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(2).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(3).num_gratings)
 			{
-				num_sensors = 1;
+				sample.num_sensors = 1;
 			}
 			else if(sample.num_channels == 8 && sample.channels.at(0).num_gratings == sample.channels.at(1).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(2).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(3).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(5).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(6).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(7).num_gratings)
 			{
-				num_sensors = 2;
+				sample.num_sensors = 2;
 			}
 			
 			
@@ -221,9 +224,12 @@ bool IllumiSenseInterface::readNextSample(Sample &sample)
 			//Modes, Ortmaier, Burgner-Kahrs:
 			//Shape Sensing Based on Longitudinal Strain Measurements Considering Elongation, Bending, and Twisting
 			//IEEE Sensors Journal, 2020
-			for(int i = 0; i < num_sensors; i++)
+			for(int i = 0; i < sample.num_sensors; i++)
 			{
 				IllumiSenseInterface::Sample::Sensor sensor;
+				sensor.num_curv_points = sample.channels.at(0 + 4*i).num_gratings;
+				sensor.curvature_strains.resize(sensor.num_curv_points,6);
+				sensor.curvature_strains.setZero();
 				
 				sample.sensors.push_back(sensor);
 			}
