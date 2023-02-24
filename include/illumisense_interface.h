@@ -5,13 +5,22 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 
 #pragma once
 
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <Eigen/Dense>
+
+
+#include <boost/array.hpp>
+#include <boost/asio.hpp>
 
 // This class implements a simple interface to the FBGS sensing system utilizing TCP sockets
 class IllumiSenseInterface
 {
 public:
 	// Constructor 
-	IllumiSenseInterface(std::string ip_address, std::string port_number);
+	IllumiSenseInterface(std::string ip_address, std::string port_number, std::string calib_file_path);
 	
 	// Simple destructor
 	~IllumiSenseInterface();
@@ -55,6 +64,7 @@ private:
 	std::string m_ip_address;
 	std::string m_port_number;
 	bool m_connected;
+	double m_radius;
 			
 	boost::asio::io_context m_io_context;
 	boost::asio::ip::tcp::resolver m_resolver;

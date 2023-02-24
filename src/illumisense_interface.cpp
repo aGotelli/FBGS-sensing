@@ -5,12 +5,35 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 
 #include "illumisense_interface.h"
 
-IllumiSenseInterface::IllumiSenseInterface(std::string ip_address, std::string port_number) : 
+IllumiSenseInterface::IllumiSenseInterface(std::string ip_address, std::string port_number, std::string calib_file_path) : 
 	m_resolver(m_io_context), m_socket(m_io_context)
 {
 	m_ip_address = ip_address;
 	m_port_number = port_number;
 	m_connected = false;
+	
+	std::ifstream calib_file(calib_file_path);
+	std::string line;
+	if (calib_file.is_open())
+	{
+		// Get line 12
+		for(int i = 0; i < 12; i++)
+		{
+			getline(calib_file,line);
+		}
+		
+		std::string delimiter = "\t";
+		
+		int pos = line.find(delimiter);
+		line.erase(0,pos + delimiter.length());
+
+		
+		m_radius = std::stod(line)*1e-6;
+		
+		calib_file.close();
+		
+	}
+	
 }
 
 IllumiSenseInterface::~IllumiSenseInterface()
@@ -172,7 +195,7 @@ bool IllumiSenseInterface::readNextSample(Sample &sample)
 				for(int j = 0; j < sample.channels.at(i).num_gratings; j++)
 				{
 					getline(is2,data_string, '\t'); 
-					sample.channels.at(i).strains = std::stod(data_string);
+					sample.channels.at(i).strains(j) = std::stod(data_string);
 				}
 			}
 			
@@ -183,11 +206,11 @@ bool IllumiSenseInterface::readNextSample(Sample &sample)
 			//If we have eight channels, and the first four as well as the last four have the same number of gratings, we have two sensors
 			//This is the maximum the hardware in the lab can currently support
 			int num_sensors = 0;
-			if(sample.num_channels == 4 && sample.channels(0).num_gratings == sample.channels(1).num_gratings && sample.channels(0).num_gratings == sample.channels(2).num_gratings && sample.channels(0).num_gratings == sample.channels(3).num_gratings)
+			if(sample.num_channels == 4 && sample.channels.at(0).num_gratings == sample.channels.at(1).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(2).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(3).num_gratings)
 			{
-				num_sensors = 1
+				num_sensors = 1;
 			}
-			else if(sample.num_channels == 8 && sample.channels(0).num_gratings == sample.channels(1).num_gratings && sample.channels(0).num_gratings == sample.channels(2).num_gratings && sample.channels(0).num_gratings == sample.channels(3).num_gratings && sample.channels(4).num_gratings == sample.channels(5).num_gratings && sample.channels(4).num_gratings == sample.channels(6).num_gratings && sample.channels(4).num_gratings == sample.channels(7).num_gratings)
+			else if(sample.num_channels == 8 && sample.channels.at(0).num_gratings == sample.channels.at(1).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(2).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(3).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(5).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(6).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(7).num_gratings)
 			{
 				num_sensors = 2;
 			}
