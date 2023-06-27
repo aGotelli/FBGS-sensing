@@ -3,7 +3,7 @@ This code implements an interface to the FBGS sensing system
 Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toronto Mississauga
 */
 
-#include "illumisense_interface.h"
+#include "fbgs-sensing/illumisense_interface.h"
 
 IllumiSenseInterface::IllumiSenseInterface(std::string ip_address, std::string port_number, std::string calib_file_path) : 
 	m_resolver(m_io_context), m_socket(m_io_context)
