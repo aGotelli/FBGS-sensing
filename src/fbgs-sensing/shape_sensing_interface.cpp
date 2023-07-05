@@ -122,7 +122,7 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
 			//Now we run through all channels
 			for(int i = 0; i < sample.num_channels; i++)
 			{
-				ShapeSensingInterface::Sample::Channel channel;
+                Channel channel;
 				
 				//Next string is channel number
 				getline(is,data_string, '\t'); 
@@ -168,7 +168,7 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
 			int num_sensors = 0;
 			while(data_string == "Curvature [1/cm]")
 			{
-				ShapeSensingInterface::Sample::Sensor sensor;
+                Sensor sensor;
 				sensor.num_curv_points = sample.channels.at(0 + 4*num_sensors).num_gratings;
 				
 				//Save kappa (curvature) values
