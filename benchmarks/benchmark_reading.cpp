@@ -36,7 +36,19 @@ int main(int argc, char *argv[])
 
     ::benchmark::RegisterBenchmark("Reading data", [&](::benchmark::State &t_state){
 
-        ShapeSensingInterface::Sample sample;
+        Sample sample;
+
+
+        while(not interface.nextSampleReady())
+            std::this_thread::sleep_until([](){ using std::chrono::operator""ms;
+                return std::chrono::steady_clock::now() + 2000ms;
+            }());
+
+        if(interface.nextSampleReady()){
+            if(interface.readNextSample(sample)){
+                std::cout << "sample_number : " << sample.sample_number << "\n";
+            }
+        }
 
         int numb = 0;
         while(t_state.KeepRunning()){

@@ -5,6 +5,17 @@ project(fbgs-sensing)
 #Important CMAKE stuff
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+#   External utilities to configure the package
+include(GNUInstallDirs)
+set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+set(LIB_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR})
+
+
+#   Give different names for debug and Release
+set(CMAKE_RELEASE_POSTFIX "")
+set(CMAKE_DEBUG_POSTFIX "-debug")
+
+
 #Eigen
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Boost REQUIRED COMPONENTS system thread date_time regex serialization)
