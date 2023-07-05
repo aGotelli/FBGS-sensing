@@ -37,13 +37,13 @@ int main(int argc, char **argv)
 	{
 		if(interface.nextSampleReady())
 		{
-			ShapeSensingInterface::Sample sample;
+            Sample sample;
 			
 			if(interface.readNextSample(sample))
 			{
 				std::cout << sample.sample_number << std::endl;
-				std::cout << sample.num_channels << std::endl;
-				std::cout << sample.num_sensors << std::endl << std::endl;
+//				std::cout << sample.num_channels << std::endl;
+//				std::cout << sample.num_sensors << std::endl << std::endl;
 				
 //				for(int i = 0; i < sample.num_channels; i++)
 //				{

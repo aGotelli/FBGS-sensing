@@ -13,6 +13,39 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 
+struct Channel
+{
+    int channel_number;
+    int num_gratings;
+    Eigen::Vector4i error_status;
+    Eigen::VectorXd	peak_wavelengths; //num_gratings x 1 vector
+    Eigen::VectorXd	peak_powers; //num_gratings x 1 vector
+};
+
+struct Sensor
+{
+    int num_curv_points;
+    Eigen::VectorXd kappa; //num_curv_points x 1 vector
+    Eigen::VectorXd phi; //num_curv_points x 1 vector
+
+    int num_shape_points;
+    Eigen::MatrixXd shape; //num_shape_points x 3 matrix
+    Eigen::VectorXd arc_length; //num_shape_points x 1 vector
+};
+
+//Structure
+struct Sample
+{
+
+
+    int sample_number;
+    int num_channels;
+    int num_sensors;
+
+    std::vector<Channel> channels;
+    std::vector<Sensor> sensors;
+};
+
 // This class implements a simple interface to the FBGS sensing system utilizing TCP sockets
 class ShapeSensingInterface
 {
@@ -23,36 +56,7 @@ public:
 	// Simple destructor
 	~ShapeSensingInterface();
 	
-	//Structure
-	struct Sample
-	{
-		struct Channel
-		{
-			int channel_number;
-			int num_gratings;
-			Eigen::Vector4i error_status; 
-			Eigen::VectorXd	peak_wavelengths; //num_gratings x 1 vector
-			Eigen::VectorXd	peak_powers; //num_gratings x 1 vector
-		};
-		
-		struct Sensor
-		{
-			int num_curv_points;
-			Eigen::VectorXd kappa; //num_curv_points x 1 vector
-			Eigen::VectorXd phi; //num_curv_points x 1 vector
-			
-			int num_shape_points;
-			Eigen::MatrixXd shape; //num_shape_points x 3 matrix
-			Eigen::VectorXd arc_length; //num_shape_points x 1 vector
-		};
-		
-		int sample_number;
-		int num_channels;
-		int num_sensors;
-		
-		std::vector<Channel> channels;
-		std::vector<Sensor> sensors;
-	};
+
 	
 	
 	bool connect();
