@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 
     ::benchmark::RegisterBenchmark("Reading data", [&](::benchmark::State &t_state){
 
-        Sample sample;
+        ShapeSensingInterface::Sample sample;
 
 
         while(not interface.nextSampleReady())

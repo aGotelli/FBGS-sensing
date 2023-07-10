@@ -104,8 +104,8 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
 			std::istream is(&data);
 			
 			//Create new, empty sample and set the passed sample to it
-			Sample new_sample;
-			sample = new_sample;
+//			Sample new_sample;
+//			sample = new_sample;
 			
 			//Skip first two entries (date and time)
 			getline(is,data_string, '\t'); 
