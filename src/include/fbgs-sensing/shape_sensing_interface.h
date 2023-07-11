@@ -70,9 +70,16 @@ public:
 	bool connect();
 	bool nextSampleReady();
 	bool readNextSample(Sample &sample);
+
+
+    bool initialiseMemory(Sample &t_sample);
 	
 
 private:
+
+
+
+
 	
 	std::string m_ip_address;
 	std::string m_port_number;

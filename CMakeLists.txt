@@ -26,6 +26,6 @@ find_package(benchmark QUIET)
 add_subdirectory(src)
 
 
-if(benchmark_FOUND)
-    add_subdirectory(benchmarks)
-endif(benchmark_FOUND)
+#if(benchmark_FOUND)
+    #add_subdirectory(benchmarks)
+#endif(benchmark_FOUND)
