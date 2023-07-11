@@ -8,6 +8,8 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 #include <chrono>
 #include <thread>
 
+#include <stdio.h>
+
 ShapeSensingInterface::ShapeSensingInterface(std::string ip_address, std::string port_number) : 
 	m_resolver(m_io_context), m_socket(m_io_context)
 {
@@ -43,15 +45,26 @@ bool ShapeSensingInterface::connect()
 
 
         //   wait next sample to be ready
+        static int pos=0;
+        char cursor[4]={'/','-','\\','|'};
         while(m_socket.available() < 4){
-            std::cout << "Wait channel to be on...\n";
+            std::cout << "Waiting channel to be on...  " << cursor[pos] << "\r";
+            pos = (pos+1) % 4;
             std::cout.flush();
             std::this_thread::sleep_for(std::chrono::milliseconds(150) );
         }
 
         std::cout << "[FBGS] TCP ready!" << std::endl;
 
+        char buffer[4];
+        //First read the first 4 bytes to figure out the size of the following ASCII string
+        size_t size_read = boost::asio::read(m_socket,boost::asio::buffer(&buffer,4));
 
+        //Convert the received bytes to signed integer
+        m_size = int((unsigned char)(buffer[0]) << 24 |
+                     (unsigned char)(buffer[1]) << 16 |
+                     (unsigned char)(buffer[2]) << 8 |
+                     (unsigned char)(buffer[3]));
 		
 		m_connected = true;
 		
@@ -65,32 +78,7 @@ bool ShapeSensingInterface::connect()
 	}
 
 
-    try
-    {
-        char buffer[4];
-        //First read the first 4 bytes to figure out the size of the following ASCII string
-        size_t size_read = boost::asio::read(m_socket,boost::asio::buffer(&buffer,4));
 
-        //Convert the received bytes to signed integer
-        m_size = int((unsigned char)(buffer[0]) << 24 |
-                       (unsigned char)(buffer[1]) << 16 |
-                       (unsigned char)(buffer[2]) << 8 |
-                       (unsigned char)(buffer[3]));
-
-
-
-
-
-
-        return true;
-
-    }
-    catch(std::exception& e)
-    {
-        std::cerr << e.what() << std::endl;
-        return false;
-    }
-	
 	
 }
 
@@ -485,6 +473,16 @@ bool ShapeSensingInterface::getData(boost::asio::streambuf &t_data)
 {
     try
     {
+
+        char buffer[4];
+        //First read the first 4 bytes to figure out the size of the following ASCII string
+        size_t size_read = boost::asio::read(m_socket,boost::asio::buffer(&buffer,4));
+
+        //Convert the received bytes to signed integer
+        m_size = int((unsigned char)(buffer[0]) << 24 |
+                     (unsigned char)(buffer[1]) << 16 |
+                     (unsigned char)(buffer[2]) << 8 |
+                     (unsigned char)(buffer[3]));
 
         //Now read the remaining ASCII string of the current data package
         boost::asio::read(m_socket,t_data,boost::asio::transfer_exactly(m_size));

@@ -52,8 +52,8 @@ void processResult(const std::vector<unsigned int> &sample_numbers)
 
 
     double percentage = 100.0*static_cast<double>(step_jumps.size())/static_cast<double>(steps.size());
-    std::cout << "step_jump : " << step_jumps.size() << " On a total of " << steps.size() << " steps -> " << percentage << "%\n";
-    std::cout << "Everage step : " << total/step_jumps.size() << " min : " << *min_max.first.base() << " max : " << *min_max.second.base() << "\n\n";
+    std::cout << "number of steps lost : " << step_jumps.size() << " On a total of " << steps.size() << " steps -> " << percentage << "%\n";
+    std::cout << "Everage lost : " << total/step_jumps.size() << ", min lost : " << *min_max.first.base() << ", max lost : " << *min_max.second.base() << "\n\n";
     std::cout.flush();
 
 }
@@ -78,34 +78,34 @@ int main(int argc, char **argv)
     std::cout << "ok memory !" << std::endl;
 
 
-    const double frequency = 150; //Hz
+    const double frequency = 200; //Hz
     const auto dt_ms = std::chrono::milliseconds(static_cast<unsigned int>((1.0/frequency)*1000));
 
-    const unsigned int max_count = 2000;
+    const unsigned int max_count = 10;
     std::vector<unsigned int> sample_numbers(max_count);
     unsigned int count = 0;
     while(count<max_count)
-	{
-		if(interface.nextSampleReady())
-		{
+    {
+        if(interface.nextSampleReady())
+        {
 
 			
-			if(interface.readNextSample(sample))
-			{
+            if(interface.readNextSample(sample))
+            {
                 sample_numbers[count] = sample.sample_number;
                 count++;
 
-			}
+            }
 			
 			
 			
 			
-		}
+        }
 
         std::this_thread::sleep_for(dt_ms );
 	
 	
-	}
+    }
 
 
     processResult(sample_numbers);
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 
     std::vector<boost::asio::streambuf> data_buffers(max_count);
     count = 0;
-    while(count<max_count)
+    while(count<=max_count)
     {
         if(interface.nextSampleReady())
         {
