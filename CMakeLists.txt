@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.2)
 
 project(fbgs-sensing)
+set (CMAKE_CXX_STANDARD 20)
 
 #Important CMAKE stuff
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)

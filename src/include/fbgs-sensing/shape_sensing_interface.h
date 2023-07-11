@@ -71,6 +71,10 @@ public:
 	bool nextSampleReady();
 	bool readNextSample(Sample &sample);
 
+    bool getData(boost::asio::streambuf &t_data);
+
+    Sample processData(boost::asio::streambuf &t_data);
+
 
     bool initialiseMemory(Sample &t_sample);
 	
@@ -78,7 +82,7 @@ public:
 private:
 
 
-
+    int m_size;
 
 	
 	std::string m_ip_address;
