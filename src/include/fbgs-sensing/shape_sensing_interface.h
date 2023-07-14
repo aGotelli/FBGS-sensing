@@ -70,7 +70,14 @@ public:
 	bool connect();
 	bool nextSampleReady();
 	bool readNextSample(Sample &sample);
-	
+
+
+    bool fetchDataFromTCPIP(const unsigned int index);
+
+    Sample processDataAtIndex(const unsigned int index);
+
+
+    std::vector<std::string> m_data_stack;
 
 private:
 	
