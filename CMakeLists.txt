@@ -22,7 +22,7 @@ find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Boost REQUIRED COMPONENTS system thread date_time regex serialization)
 
 find_package(benchmark QUIET)
-
+find_package(real_time_tools QUIET)
 
 add_subdirectory(src)
 

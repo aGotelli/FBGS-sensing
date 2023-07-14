@@ -10,6 +10,8 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 
 #include <stdio.h>
 
+#include <real_time_tools/spinner.hpp>
+
 ShapeSensingInterface::ShapeSensingInterface(std::string ip_address, std::string port_number) : 
 	m_resolver(m_io_context), m_socket(m_io_context)
 {
@@ -44,6 +46,10 @@ bool ShapeSensingInterface::connect()
 		std::cout << "Connected!" << std::endl << std::endl;
 
 
+        real_time_tools::Spinner spinner;
+        double dt_spinner = 0.15;
+        spinner.set_period( dt_spinner );
+
         //   wait next sample to be ready
         static int pos=0;
         char cursor[4]={'/','-','\\','|'};
@@ -51,10 +57,10 @@ bool ShapeSensingInterface::connect()
             std::cout << "Waiting channel to be on...  " << cursor[pos] << "\r";
             pos = (pos+1) % 4;
             std::cout.flush();
-            std::this_thread::sleep_for(std::chrono::milliseconds(150) );
+            spinner.spin();
         }
 
-        std::cout << "[FBGS] TCP ready!" << std::endl;
+        std::cout << "Sensor Ready!" << std::endl << std::endl;
 
         char buffer[4];
         //First read the first 4 bytes to figure out the size of the following ASCII string
@@ -104,6 +110,9 @@ bool ShapeSensingInterface::initialiseMemory(Sample &t_sample)
 
         std::string data_string;
         std::istream is(&data);
+
+
+        t_sample = Sample();
 
 
         //Skip first two entries (date and time)
