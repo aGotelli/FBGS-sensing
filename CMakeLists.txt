@@ -25,6 +25,10 @@ find_package(Boost REQUIRED COMPONENTS system thread date_time regex serializati
 find_package(benchmark QUIET)
 find_package(mpi_cmake_modules QUIET)
 find_package(real_time_tools QUIET)
+find_package(utilities REQUIRED)
+find_package(Qt5Charts REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
 
 add_subdirectory(src)
 

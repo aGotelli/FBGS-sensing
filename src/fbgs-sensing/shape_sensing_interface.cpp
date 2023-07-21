@@ -16,6 +16,22 @@ ShapeSensingInterface::ShapeSensingInterface(std::string ip_address, std::string
 
 }
 
+
+ShapeSensingInterface::ShapeSensingInterface(const std::string ip_address,
+                      const std::string port_number,
+                      const double t_recording_time,
+                      const double t_frequency) :
+    m_resolver(m_io_context),
+    m_socket(m_io_context),
+    m_recording_time(t_recording_time),
+    m_frequency(t_frequency)
+{
+    m_ip_address = ip_address;
+    m_port_number = port_number;
+    m_connected = false;
+
+}
+
 ShapeSensingInterface::~ShapeSensingInterface()
 {
 
@@ -42,21 +58,21 @@ bool ShapeSensingInterface::connect()
 		
 		m_connected = true;
 
-//        real_time_tools::Spinner spinner;
-//        double dt_spinner = 0.15;
-//        spinner.set_period( dt_spinner );
+        real_time_tools::Spinner spinner;
+        double dt_spinner = 0.15;
+        spinner.set_period( dt_spinner );
 
-//        //   wait next sample to be ready
-//        static int pos=0;
-//        char cursor[4]={'/','-','\\','|'};
-//        while(m_socket.available() < 4){
-//            std::cout << "Waiting channel to be on...  " << cursor[pos] << "\r";
-//            pos = (pos+1) % 4;
-//            std::cout.flush();
-//            spinner.spin();
-//        }
+        //   wait next sample to be ready
+        static int pos=0;
+        char cursor[4]={'/','-','\\','|'};
+        while(m_socket.available() < 4){
+            std::cout << "Waiting channel to be on...  " << cursor[pos] << "\r";
+            pos = (pos+1) % 4;
+            std::cout.flush();
+            spinner.spin();
+        }
 
-//        std::cout << "Sensor Ready!" << std::endl << std::endl;
+        std::cout << "Sensor Ready!" << std::endl << std::endl;
 		
 		return true;	
 				
@@ -147,8 +163,8 @@ ShapeSensingInterface::Sample ShapeSensingInterface::processDataAtIndex(const un
     std::istream is(&data);
 
     //Create new, empty sample and set the passed sample to it
-    //			Sample new_sample;
-    //			sample = new_sample;
+//    			Sample new_sample;
+//    			sample = new_sample;
 
     //Skip first two entries (date and time)
     getline(is,data_string, '\t');
@@ -331,8 +347,8 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
 			std::istream is(&data);
 			
 			//Create new, empty sample and set the passed sample to it
-//			Sample new_sample;
-//			sample = new_sample;
+            Sample new_sample;
+            sample = new_sample;
 			
 			//Skip first two entries (date and time)
 			getline(is,data_string, '\t'); 
@@ -487,3 +503,60 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
 	
 	
 }
+
+
+
+
+void ShapeSensingInterface::startRecordingLoop()
+{
+    m_rt_thread.create_realtime_thread(&ShapeSensingInterface::m_loop, this);
+}
+
+
+THREAD_FUNCTION_RETURN_TYPE ShapeSensingInterface::m_loop(void* instance_pointer)
+{
+    ((ShapeSensingInterface*)(instance_pointer))->recordingLoop();
+    return THREAD_FUNCTION_RETURN_VALUE;
+}
+
+
+void ShapeSensingInterface::recordingLoop()
+{
+    unsigned int index = 0;
+    unsigned int max_index = m_data_stack.size();
+
+    char buffer[4];
+    auto asio_buffer = boost::asio::buffer(&buffer,4);
+    int size;
+    boost::asio::streambuf data;
+    while(not m_stop_loop
+           and index<max_index){
+
+        try
+        {
+
+            //  First read the first 4 bytes to figure out the size of the following ASCII string
+            boost::asio::read(m_socket, asio_buffer);
+
+            //  Convert the received bytes to signed integer
+            size = int((unsigned char)(buffer[0]) << 24 |
+                       (unsigned char)(buffer[1]) << 16 |
+                       (unsigned char)(buffer[2]) << 8 |
+                       (unsigned char)(buffer[3]));
+
+
+            //  Now read the remaining ASCII string of the current data package
+            boost::asio::read(m_socket,data,boost::asio::transfer_exactly(size));
+
+            //  Add data to stack
+            m_data_stack[index++] = std::string((std::istreambuf_iterator<char>(&data)), std::istreambuf_iterator<char>() );
+
+        }
+        catch(std::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+
+    }
+}
+

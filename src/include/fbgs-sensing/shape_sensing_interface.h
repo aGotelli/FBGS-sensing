@@ -13,12 +13,16 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 
-
+#include <real_time_tools/spinner.hpp>
+#include <real_time_tools/thread.hpp>
 
 // This class implements a simple interface to the FBGS sensing system utilizing TCP sockets
 class ShapeSensingInterface
 {
 public:
+
+
+
 
 
     struct Channel
@@ -60,6 +64,11 @@ public:
 
 	// Constructor 
 	ShapeSensingInterface(std::string ip_address, std::string port_number);
+
+    ShapeSensingInterface(const std::string ip_address,
+                          const std::string port_number,
+                          const double t_recording_time,
+                          const double t_frequency);
 	
 	// Simple destructor
 	~ShapeSensingInterface();
@@ -77,7 +86,10 @@ public:
     Sample processDataAtIndex(const unsigned int index);
 
 
-    std::vector<std::string> m_data_stack;
+    void startRecordingLoop();
+
+
+
 
 private:
 	
@@ -88,6 +100,19 @@ private:
 	boost::asio::io_context m_io_context;
 	boost::asio::ip::tcp::resolver m_resolver;
 	boost::asio::ip::tcp::socket m_socket;
+
+
+
+    real_time_tools::RealTimeThread m_rt_thread;
+    static THREAD_FUNCTION_RETURN_TYPE m_loop(void* instance_pointer);
+    void recordingLoop();
+    bool m_stop_loop { false };
+    real_time_tools::Spinner m_spinner;
+    double m_recording_time;
+    double m_frequency { 100 };
+    double m_dt { 1.0f/m_frequency };
+
+    std::vector<std::string> m_data_stack { std::vector<std::string>(static_cast<int>(m_recording_time / m_dt)) };
 
 
 };
