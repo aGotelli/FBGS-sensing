@@ -34,18 +34,40 @@ install(DIRECTORY include/${PROJECT_NAME}
 
 
 
-find_package(PythonLibs)
 
 
 add_executable(main
     main.cpp
-    matplotlibcpp.h
 )
-target_include_directories(main PRIVATE ${PYTHON_INCLUDE_DIRS})
 
 target_link_libraries(main
     PUBLIC
         ${PROJECT_NAME}
-        ${PYTHON_LIBRARIES}
 )
 
+add_executable(test_tcpip_connection
+    test_tcpip_connection.cpp
+)
+
+target_link_libraries(test_tcpip_connection
+    PUBLIC
+    Eigen3::Eigen
+    ${Boost_LIBRARIES}
+    real_time_tools::real_time_tools
+    utilities
+    Qt5::Widgets
+    Qt5::Charts
+)
+
+
+add_executable(read_and_save_data
+    read_and_save_data.cpp
+)
+
+target_link_libraries(read_and_save_data
+    PUBLIC
+        ${PROJECT_NAME}
+        debug utilities-debug
+        optimized utilities
+        yaml-cpp
+)

@@ -24,9 +24,8 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 //#define PORT_NUMBER "2055" //Default port number for Illumisense
 //#define CALIB_FILE "/home/sven/Downloads/PR2022_14_53_01_S01 - calib.txt"
 
-#include "matplotlibcpp.h"
-namespace plt = matplotlibcpp;
-
+#include <algorithm>
+#include <numeric>
 
 
 void processResult(const std::vector<unsigned int> &sample_numbers)
@@ -53,20 +52,21 @@ void processResult(const std::vector<unsigned int> &sample_numbers)
 
     double percentage = 100.0*static_cast<double>(step_jumps.size())/static_cast<double>(steps.size());
     std::cout << "number of steps lost : " << step_jumps.size() << " On a total of " << steps.size() << " steps -> " << percentage << "%\n";
-    std::cout << "Everage lost : " << total/step_jumps.size() << ", min lost : " << *min_max.first.base() << ", max lost : " << *min_max.second.base() << "\n\n";
+    if(not step_jumps.empty())
+        std::cout << "Everage lost : " << total/step_jumps.size() << ", min lost : " << *min_max.first.base() << ", max lost : " << *min_max.second.base() << "\n\n";
     std::cout.flush();
 
 }
 
 int main(int argc, char **argv)
 {
-	
 
-	//Example code for Shape Sensing Interface
-	
-	ShapeSensingInterface interface(SERVER_ADDRESS,PORT_NUMBER);
-	
-	if(!interface.connect())
+
+    //Example code for Shape Sensing Interface
+
+    ShapeSensingInterface interface(SERVER_ADDRESS,PORT_NUMBER);
+
+    if(!interface.connect())
         return 0;
 
     std::cout << "connected !" << std::endl;
@@ -74,14 +74,14 @@ int main(int argc, char **argv)
 
 
     ShapeSensingInterface::Sample sample;
-    interface.initialiseMemory(sample);
-    std::cout << "ok memory !" << std::endl;
+//    interface.initialiseMemory(sample);
+//    std::cout << "ok memory !" << std::endl;
 
 
     const double frequency = 200; //Hz
     const auto dt_ms = std::chrono::milliseconds(static_cast<unsigned int>((1.0/frequency)*1000));
 
-    const unsigned int max_count = 10;
+    const unsigned int max_count = 1000;
     std::vector<unsigned int> sample_numbers(max_count);
     unsigned int count = 0;
     while(count<max_count)
@@ -89,69 +89,67 @@ int main(int argc, char **argv)
         if(interface.nextSampleReady())
         {
 
-			
+
             if(interface.readNextSample(sample))
             {
                 sample_numbers[count] = sample.sample_number;
                 count++;
 
+                const auto row = sample.sensors[0].shape.rows() - 1;
+                std::cout << "Tip pos : \n" << sample.sensors[0].shape.row(row) << "\n";
+
             }
-			
-			
-			
-			
+
+
+
+
         }
 
         std::this_thread::sleep_for(dt_ms );
-	
-	
+
+
     }
 
 
     processResult(sample_numbers);
 
 
-    std::cout << "\n\nNow new version \n\n";
+//    std::cout << "\n\nNow new version \n\n" << std::endl;;
 
+//    interface.m_data_stack.resize(max_count);
 
+//    count = 0;
+//    while(count<max_count)
+//    {
+//        if(interface.nextSampleReady())
+//        {
+//            if(interface.fetchDataFromTCPIP(count))
+//            {
+//                count++;
+//            }
 
-    std::vector<boost::asio::streambuf> data_buffers(max_count);
-    count = 0;
-    while(count<=max_count)
-    {
-        if(interface.nextSampleReady())
-        {
-            if(interface.getData(data_buffers[count]))
-            {
-                count++;
-            }
+//        }
 
-        }
+//        std::this_thread::sleep_for(dt_ms );
 
-        std::this_thread::sleep_for(dt_ms );
+//    }
 
-    }
-
-
-    sample_numbers.clear();
-    std::for_each(data_buffers.begin(),
-                  data_buffers.end(),
-                  [&](boost::asio::streambuf &data){
-                      const auto sample = interface.processData(data);
-                      sample_numbers.push_back( sample.sample_number );
-                  });
+//    std::vector<unsigned int> sample_numbers_new(max_count);
+//    for(unsigned int index=0; auto& sample_number : sample_numbers_new)
+//        sample_number = interface.processDataAtIndex(index++).sample_number;
 
 
 
 
-    processResult(sample_numbers);
+
+
+//    processResult(sample_numbers_new);
 
 
 
-	
-	return 1;
-	
-					
-	
+
+    return 1;
+
+
+
 }
-
