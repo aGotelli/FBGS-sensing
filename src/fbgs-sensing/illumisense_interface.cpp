@@ -204,161 +204,162 @@ bool IllumiSenseInterface::readNextSample(Sample &sample)
 				}
 			}
 			
-			//Create sensor data
+			//Create sensor data (does not work)
 						
 			//Check the number of sensors
 			//If we have four channels, each with the same number of gratings, we have one sensor
 			//If we have eight channels, and the first four as well as the last four have the same number of gratings, we have two sensors
 			//This is the maximum the hardware in the lab can currently support
-			sample.num_sensors = 0;
-			if(sample.num_channels == 4 && sample.channels.at(0).num_gratings == sample.channels.at(1).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(2).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(3).num_gratings)
-			{
-				sample.num_sensors = 1;
-			}
-			else if(sample.num_channels == 8 && sample.channels.at(0).num_gratings == sample.channels.at(1).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(2).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(3).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(5).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(6).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(7).num_gratings)
-			{
-				sample.num_sensors = 2;
-			}
 			
-			
-			//For each sensor, computing the curvature strain of the multicore fiber at each grating position
-			//Throughout this code, we are following the methods derived in:
-			//Modes, Ortmaier, Burgner-Kahrs:
-			//Shape Sensing Based on Longitudinal Strain Measurements Considering Elongation, Bending, and Twisting
-			//IEEE Sensors Journal, 2020
-			for(int i = 0; i < sample.num_sensors; i++)
-			{
-				IllumiSenseInterface::Sample::Sensor sensor;
-                IllumiSenseInterface::Sample::Channel c1 = sample.channels.at(0 + 4*i);
-                IllumiSenseInterface::Sample::Channel c2 = sample.channels.at(1 + 4*i);
-                IllumiSenseInterface::Sample::Channel c3 = sample.channels.at(3 + 4*i);
-                IllumiSenseInterface::Sample::Channel c4 = sample.channels.at(2 + 4*i);
-                
-				sensor.num_curv_points = sample.channels.at(0 + 4*i).num_gratings;
-				sensor.curvature_strains.resize(sensor.num_curv_points,6);
-				sensor.curvature_strains.setZero();
-				
-				for(int j = 0; j < sensor.num_curv_points; j++)
-                {
-                    // Channel 0: Core center
-                    // Channel 1: 0,0,r
-                    // Channel 2: 0, sin(2pi/3), cos(2pi/3)
-                    // Channel 3: 0, -sin(2pi/3), cos(2pi/3)
-                    // Assumption: backbone along x-axis
-
-                    // Get strain measurement from central channel (assumed to result from pure elongation)
-                    double epsilon_a = c1.strains(j)*1e-6;
-                    double E_a = 1 + epsilon_a;
-
-                    //Get strain measurements of each outer channel
-                    double epsilon_1 = c2.strains(j)*1e-6;
-                    double epsilon_2 = c3.strains(j)*1e-6;
-                    double epsilon_3 = c4.strains(j)*1e-6;
-                    double E_1 = 1 + epsilon_1;
-                    double E_2 = 1 + epsilon_2;
-                    double E_3 = 1 + epsilon_3;
-
-                    //Define angle of each channel
-                    double theta_1 = 0 + M_PI/2;
-                    double theta_2 = 2*M_PI/3 + M_PI/2;
-                    double theta_3 = 4*M_PI/3 + M_PI/2;
-
-                    //Define helper variables
-                    double s12 = std::sin(theta_1-theta_2);
-                    double s23 = std::sin(theta_2-theta_3);
-                    double s31 = std::sin(theta_3-theta_1);
-
-                    //Equation (21) of Vincent's paper
-                    double Q = (epsilon_1*s23+epsilon_2*s31+epsilon_3*s12)/(s23+s31+s12);
-
-                    //Equation (23) of Vincent's paper to calculate absolute value of twist
-                    double tmp_1 = std:: sqrt((E_a/2)*(E_a/2)-Q);
-                    double tmp_2 = -tmp_1;
-
-
-                    double twist_abs_1 = (1.0/m_radius)*std::sqrt(1-(E_a/2 + tmp_1)*(E_a/2 + tmp_1));
-                    double twist_abs_2 = (1.0/m_radius)*std::sqrt(1-(E_a/2 + tmp_2)*(E_a/2 + tmp_2));
-                    
-                    if(abs(tmp_1) - 0.5 < 1e-4 &&  abs(tmp_2) - 0.5 < 1e-4)
-                    {
-						twist_abs_1 = 0;
-						twist_abs_2 = 0;
-					}
-                    
-                    std::cout << twist_abs_1 << std::endl;
-                    std::cout << twist_abs_2 << std::endl << std::endl;
-
-                    //Equation (13) of Vincent's paper to calculate bending angle
-                    double s1 = std::sin(theta_1);
-                    double s2 = std::sin(theta_2);
-                    double s3 = std::sin(theta_3);
-                    double c1 = std::cos(theta_1);
-                    double c2 = std::cos(theta_2);
-                    double c3 = std::cos(theta_3);
-
-                    //Check first theta_abs value
-
-                    double A1 = std::sqrt(E_1*E_1 - (m_radius*twist_abs_1)*(m_radius*twist_abs_1)) - E_a;
-                    double A2 = std::sqrt(E_2*E_2 - (m_radius*twist_abs_1)*(m_radius*twist_abs_1)) - E_a;
-                    double A3 = std::sqrt(E_3*E_3 - (m_radius*twist_abs_1)*(m_radius*twist_abs_1)) - E_a;
-
-                    double theta_b_1 = std::atan2((A1*c2-A2*c1),(A2*s1-A1*s2));
-                    double theta_b_2 = std::atan2((A1*c3-A3*c1),(A3*s1-A1*s3));
-                    double theta_b_3 = std::atan2((A2*c3-A3*c2),(A3*s2-A2*s3));
-
-                    double theta_b = theta_b_1;
-                    double twist = twist_abs_1;
-
-                    if((std::abs(theta_b_1 - theta_b_2) > 1e-4 && std::abs(theta_b_1 - theta_b_2) - 2*M_PI > 1e-4) || (std::abs(theta_b_1 - theta_b_3) > 1e-4 && std::abs(theta_b_1 - theta_b_3) - 2*M_PI > 1e-4) || std::isnan(theta_b_1) || std::isnan(theta_b_2) || std::isnan(theta_b_3))
-                    {
-
-                        A1 = std::sqrt(E_1*E_1 - (m_radius*twist_abs_2)*(m_radius*twist_abs_2)) - E_a;
-                        A2 = std::sqrt(E_2*E_2 - (m_radius*twist_abs_2)*(m_radius*twist_abs_2)) - E_a;
-                        A3 = std::sqrt(E_3*E_3 - (m_radius*twist_abs_2)*(m_radius*twist_abs_2)) - E_a;
-
-                        theta_b_1 = std::atan2((A2*c3-A3*c2),(A3*s2-A2*s3));
-                        theta_b_2 = std::atan2((A1*c3-A3*c1),(A3*s1-A1*s3));
-                        theta_b_3 = std::atan2((A1*c2-A2*c1),(A2*s1-A1*s2));
-
-                    if((std::abs(theta_b_1 - theta_b_2) > 1e-4 && std::abs(theta_b_1 - theta_b_2) - 2*M_PI > 1e-4) || (std::abs(theta_b_1 - theta_b_3) > 1e-4 && std::abs(theta_b_1 - theta_b_3) - 2*M_PI > 1e-4) || std::isnan(theta_b_1) || std::isnan(theta_b_2) || std::isnan(theta_b_3))
-                    {
-                        std::cout << "No valid twist value found" << std::endl;
-                    }
-                    else
-                    {
-                        theta_b = theta_b_1;
-                        twist = twist_abs_2;
-                    }
-                    }
-
-
-                    double kappa = 0;
-
-                    //Use first channel to compute kappa if first channel not in rectifying plane
-                    if(std::cos(theta_b - theta_1) > 1e-6)
-                    {
-                        kappa = -1.0/(m_radius*std::cos(theta_b - theta_1))*(std::sqrt(E_1*E_1-(m_radius*twist)*(m_radius*twist)) - E_a);
-
-                    }
-                    else // Use second channel otherwise
-                    {
-                        kappa = -1.0/(m_radius*std::cos(theta_b - theta_2))*(std::sqrt(E_2*E_2-(m_radius*twist)*(m_radius*twist)) - E_a);
-                    }
-
-                    //Convert kappa and theta to kappa_y and kappa_z
-                    double kappa_y = kappa*std::cos(theta_b);
-                    double kappa_z = kappa*std::sin(theta_b);
-
-                    Eigen::Matrix<double,1,6> strain_values;
-
-                    strain_values << twist, kappa_y, kappa_z, E_a, 0, 0;
-
-                    sensor.curvature_strains.row(j) = strain_values;
-
-                }
-				
-				sample.sensors.push_back(sensor);
-			}
+			//sample.num_sensors = 0;
+			//if(sample.num_channels == 4 && sample.channels.at(0).num_gratings == sample.channels.at(1).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(2).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(3).num_gratings)
+			//{
+			//	sample.num_sensors = 1;
+			//}
+			//else if(sample.num_channels == 8 && sample.channels.at(0).num_gratings == sample.channels.at(1).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(2).num_gratings && sample.channels.at(0).num_gratings == sample.channels.at(3).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(5).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(6).num_gratings && sample.channels.at(4).num_gratings == sample.channels.at(7).num_gratings)
+			//{
+			//	sample.num_sensors = 2;
+			//}
+			//
+			//
+			////For each sensor, computing the curvature strain of the multicore fiber at each grating position
+			////Throughout this code, we are following the methods derived in:
+			////Modes, Ortmaier, Burgner-Kahrs:
+			////Shape Sensing Based on Longitudinal Strain Measurements Considering Elongation, Bending, and Twisting
+			////IEEE Sensors Journal, 2020
+			//for(int i = 0; i < sample.num_sensors; i++)
+			//{
+			//	IllumiSenseInterface::Sample::Sensor sensor;
+            //    IllumiSenseInterface::Sample::Channel c1 = sample.channels.at(0 + 4*i);
+            //    IllumiSenseInterface::Sample::Channel c2 = sample.channels.at(1 + 4*i);
+            //    IllumiSenseInterface::Sample::Channel c3 = sample.channels.at(3 + 4*i);
+            //    IllumiSenseInterface::Sample::Channel c4 = sample.channels.at(2 + 4*i);
+            //    
+			//	sensor.num_curv_points = sample.channels.at(0 + 4*i).num_gratings;
+			//	sensor.curvature_strains.resize(sensor.num_curv_points,6);
+			//	sensor.curvature_strains.setZero();
+			//	
+			//	for(int j = 0; j < sensor.num_curv_points; j++)
+            //    {
+            //        // Channel 0: Core center
+            //        // Channel 1: 0,0,r
+            //        // Channel 2: 0, sin(2pi/3), cos(2pi/3)
+            //        // Channel 3: 0, -sin(2pi/3), cos(2pi/3)
+            //        // Assumption: backbone along x-axis
+			//
+            //        // Get strain measurement from central channel (assumed to result from pure elongation)
+            //        double epsilon_a = c1.strains(j)*1e-6;
+            //        double E_a = 1 + epsilon_a;
+			//
+            //        //Get strain measurements of each outer channel
+            //        double epsilon_1 = c2.strains(j)*1e-6;
+            //        double epsilon_2 = c3.strains(j)*1e-6;
+            //        double epsilon_3 = c4.strains(j)*1e-6;
+            //        double E_1 = 1 + epsilon_1;
+            //        double E_2 = 1 + epsilon_2;
+            //        double E_3 = 1 + epsilon_3;
+			//
+            //        //Define angle of each channel
+            //        double theta_1 = 0 + M_PI/2;
+            //        double theta_2 = 2*M_PI/3 + M_PI/2;
+            //        double theta_3 = 4*M_PI/3 + M_PI/2;
+			//
+            //        //Define helper variables
+            //        double s12 = std::sin(theta_1-theta_2);
+            //        double s23 = std::sin(theta_2-theta_3);
+            //        double s31 = std::sin(theta_3-theta_1);
+			//
+            //        //Equation (21) of Vincent's paper
+            //        double Q = (epsilon_1*s23+epsilon_2*s31+epsilon_3*s12)/(s23+s31+s12);
+			//
+            //        //Equation (23) of Vincent's paper to calculate absolute value of twist
+            //        double tmp_1 = std:: sqrt((E_a/2)*(E_a/2)-Q);
+            //        double tmp_2 = -tmp_1;
+			//
+			//
+            //        double twist_abs_1 = (1.0/m_radius)*std::sqrt(1-(E_a/2 + tmp_1)*(E_a/2 + tmp_1));
+            //        double twist_abs_2 = (1.0/m_radius)*std::sqrt(1-(E_a/2 + tmp_2)*(E_a/2 + tmp_2));
+            //        
+            //        if(abs(tmp_1) - 0.5 < 1e-4 &&  abs(tmp_2) - 0.5 < 1e-4)
+            //        {
+			//			twist_abs_1 = 0;
+			//			twist_abs_2 = 0;
+			//		}
+            //        
+            //        std::cout << twist_abs_1 << std::endl;
+            //        std::cout << twist_abs_2 << std::endl << std::endl;
+			//
+            //        //Equation (13) of Vincent's paper to calculate bending angle
+            //        double s1 = std::sin(theta_1);
+            //        double s2 = std::sin(theta_2);
+            //        double s3 = std::sin(theta_3);
+            //        double c1 = std::cos(theta_1);
+            //        double c2 = std::cos(theta_2);
+            //        double c3 = std::cos(theta_3);
+			//
+            //        //Check first theta_abs value
+			//
+            //        double A1 = std::sqrt(E_1*E_1 - (m_radius*twist_abs_1)*(m_radius*twist_abs_1)) - E_a;
+            //        double A2 = std::sqrt(E_2*E_2 - (m_radius*twist_abs_1)*(m_radius*twist_abs_1)) - E_a;
+            //        double A3 = std::sqrt(E_3*E_3 - (m_radius*twist_abs_1)*(m_radius*twist_abs_1)) - E_a;
+			//
+            //        double theta_b_1 = std::atan2((A1*c2-A2*c1),(A2*s1-A1*s2));
+            //        double theta_b_2 = std::atan2((A1*c3-A3*c1),(A3*s1-A1*s3));
+            //        double theta_b_3 = std::atan2((A2*c3-A3*c2),(A3*s2-A2*s3));
+			//
+            //        double theta_b = theta_b_1;
+            //        double twist = twist_abs_1;
+			//
+            //        if((std::abs(theta_b_1 - theta_b_2) > 1e-4 && std::abs(theta_b_1 - theta_b_2) - 2*M_PI > 1e-4) || (std::abs(theta_b_1 - theta_b_3) > 1e-4 && std::abs(theta_b_1 - theta_b_3) - 2*M_PI > 1e-4) || std::isnan(theta_b_1) || std::isnan(theta_b_2) || std::isnan(theta_b_3))
+            //        {
+			//
+            //            A1 = std::sqrt(E_1*E_1 - (m_radius*twist_abs_2)*(m_radius*twist_abs_2)) - E_a;
+            //            A2 = std::sqrt(E_2*E_2 - (m_radius*twist_abs_2)*(m_radius*twist_abs_2)) - E_a;
+            //            A3 = std::sqrt(E_3*E_3 - (m_radius*twist_abs_2)*(m_radius*twist_abs_2)) - E_a;
+			//
+            //            theta_b_1 = std::atan2((A2*c3-A3*c2),(A3*s2-A2*s3));
+            //            theta_b_2 = std::atan2((A1*c3-A3*c1),(A3*s1-A1*s3));
+            //            theta_b_3 = std::atan2((A1*c2-A2*c1),(A2*s1-A1*s2));
+			//
+            //        if((std::abs(theta_b_1 - theta_b_2) > 1e-4 && std::abs(theta_b_1 - theta_b_2) - 2*M_PI > 1e-4) || (std::abs(theta_b_1 - theta_b_3) > 1e-4 && std::abs(theta_b_1 - theta_b_3) - 2*M_PI > 1e-4) || std::isnan(theta_b_1) || std::isnan(theta_b_2) || std::isnan(theta_b_3))
+            //        {
+            //            std::cout << "No valid twist value found" << std::endl;
+            //        }
+            //        else
+            //        {
+            //            theta_b = theta_b_1;
+            //            twist = twist_abs_2;
+            //        }
+            //        }
+			//
+			//
+            //        double kappa = 0;
+			//
+            //        //Use first channel to compute kappa if first channel not in rectifying plane
+            //        if(std::cos(theta_b - theta_1) > 1e-6)
+            //        {
+            //            kappa = -1.0/(m_radius*std::cos(theta_b - theta_1))*(std::sqrt(E_1*E_1-(m_radius*twist)*(m_radius*twist)) - E_a);
+			//
+            //        }
+            //        else // Use second channel otherwise
+            //        {
+            //            kappa = -1.0/(m_radius*std::cos(theta_b - theta_2))*(std::sqrt(E_2*E_2-(m_radius*twist)*(m_radius*twist)) - E_a);
+            //        }
+			//
+            //        //Convert kappa and theta to kappa_y and kappa_z
+            //        double kappa_y = kappa*std::cos(theta_b);
+            //        double kappa_z = kappa*std::sin(theta_b);
+			//
+            //        Eigen::Matrix<double,1,6> strain_values;
+			//
+            //        strain_values << twist, kappa_y, kappa_z, E_a, 0, 0;
+			//
+            //        sensor.curvature_strains.row(j) = strain_values;
+			//
+            //    }
+			//	
+			//	sample.sensors.push_back(sensor);
+			//}
 			
 			return true;
 					

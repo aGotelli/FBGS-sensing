@@ -37,18 +37,18 @@ public:
 			Eigen::VectorXd	strains; //num_gratings x 1 vector
 		};
 		
-		struct Sensor
-		{
-			int num_curv_points;
-			Eigen::MatrixXd curvature_strains; //num_curv_points x 6 matrix (v,u)
-		};
+		//struct Sensor
+		//{
+		//	int num_curv_points;
+		//	Eigen::MatrixXd curvature_strains; //num_curv_points x 6 matrix (v,u)
+		//};
 		
 		int sample_number;
 		int num_channels;
-		int num_sensors;
+		//int num_sensors;
 		
 		std::vector<Channel> channels;
-		std::vector<Sensor> sensors;
+		//std::vector<Sensor> sensors;
 	};
 	
 	
