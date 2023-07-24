@@ -237,7 +237,7 @@ int main(int, char **)
 
 
 
-    const std::string path = "data/fbgs/" + std::to_string(static_cast<int>(sensor_reading_frequency)) + "Hz/two_sensors";
+    const std::string path = "data/" + std::to_string(static_cast<int>(sensor_reading_frequency)) + "Hz/two_sensors";
     const std::string name = "simulation_results_" + std::to_string(static_cast<int>(recording_time)) + "s.yaml";
 
 
