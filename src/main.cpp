@@ -129,13 +129,6 @@ int main(int argc, char **argv)
 	//				}
 	//				std::cout << std::endl;
 	//			}
-	//			
-	//			for(int i = 0; i < sample.num_sensors; i++)
-	//			{
-	//				std::cout << sample.sensors.at(i).num_curv_points << std::endl << std::endl;
-	//				std::cout << sample.sensors.at(i).curvature_strains << std::endl << std::endl;
-	//				
-	//			}
 	//		}
 	//	}
 	//
