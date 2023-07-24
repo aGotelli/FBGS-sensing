@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 
     //Example code for Shape Sensing Interface
 
-    ShapeSensingInterface interface(SERVER_ADDRESS,PORT_NUMBER);
+    ShapeSensingInterface interface(SERVER_ADDRESS, PORT_NUMBER);
 
     if(!interface.connect())
         return 0;

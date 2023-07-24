@@ -7,15 +7,15 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 
 #include <real_time_tools/spinner.hpp>
 
-ShapeSensingInterface::ShapeSensingInterface(std::string ip_address,
-                                             std::string port_number) :
-	m_resolver(m_io_context), m_socket(m_io_context)
-{
-	m_ip_address = ip_address;
-	m_port_number = port_number;
-	m_connected = false;
+//ShapeSensingInterface::ShapeSensingInterface(std::string ip_address,
+//                                             std::string port_number) :
+//    m_resolver(m_io_context), m_socket(m_io_context)
+//{
+//    m_ip_address = ip_address;
+//    m_port_number = port_number;
+//    m_connected = false;
 
-}
+//}
 
 
 ShapeSensingInterface::ShapeSensingInterface(const std::string ip_address,
@@ -30,7 +30,6 @@ ShapeSensingInterface::ShapeSensingInterface(const std::string ip_address,
     m_ip_address = ip_address;
     m_port_number = port_number;
     m_connected = false;
-
 }
 
 ShapeSensingInterface::~ShapeSensingInterface()
@@ -45,17 +44,17 @@ bool ShapeSensingInterface::connect()
 	try
 	{
 		//Get endpoints
-		std::cout << "[FBGS] Get endpoints... ";
+        std::cout << "[FBGS] Get endpoints... \n";
 		boost::asio::ip::tcp::resolver::results_type endpoints = m_resolver.resolve(m_ip_address, m_port_number);
 		
 		boost::asio::ip::tcp::endpoint ep = *endpoints;
 		
-		std::cout << "Establishing connection to " << ep << "... "; 
+        std::cout << "Establishing connection to " << ep << "... \n";
 		
 		//Connect to socket and open connection
 		boost::asio::connect(m_socket, endpoints);
 		
-		std::cout << "Connected!" << std::endl << std::endl;
+        std::cout << "\n\n\n            Connected!\n\n\n" << std::endl << std::endl;
 
 
         real_time_tools::Spinner spinner;
@@ -66,13 +65,28 @@ bool ShapeSensingInterface::connect()
         static int pos=0;
         char cursor[4]={'/','-','\\','|'};
         while(m_socket.available() < 4){
-            std::cout << "Waiting channel to be on...  " << cursor[pos] << "\r";
+            std::cout << "Waiting for Shape Sensing data stream...  " << cursor[pos] << "\r";
             pos = (pos+1) % 4;
             std::cout.flush();
             spinner.spin();
         }
 
-        std::cout << "Sensor Ready!" << std::endl << std::endl;
+
+
+        char buffer[4];
+        //First read the first 4 bytes to figure out the size of the following ASCII string
+        boost::asio::read(m_socket,boost::asio::buffer(&buffer,4));
+
+        //Convert the received bytes to signed integer
+        m_size = int((unsigned char)(buffer[0]) << 24 |
+                     (unsigned char)(buffer[1]) << 16 |
+                     (unsigned char)(buffer[2]) << 8 |
+                     (unsigned char)(buffer[3]));
+
+
+
+
+        std::cout << "\n\n\n            Reading the stream!\n\n\n" << std::endl << std::endl;
 
 
 		return true;	
@@ -115,28 +129,47 @@ bool ShapeSensingInterface::fetchDataFromTCPIP(const unsigned int index)
 
     try
     {
-        char buffer[4];
-        //First read the first 4 bytes to figure out the size of the following ASCII string
-        size_t size_read = boost::asio::read(m_socket,boost::asio::buffer(&buffer,4));
 
-        //Convert the received bytes to signed integer
-        int size = int((unsigned char)(buffer[0]) << 24 |
-                       (unsigned char)(buffer[1]) << 16 |
-                       (unsigned char)(buffer[2]) << 8 |
-                       (unsigned char)(buffer[3]));
+        //Now read the remaining ASCII string of the current data package
+        boost::asio::read(m_socket,
+                          m_buffers_stack[index],
+                          boost::asio::transfer_exactly(m_size));
 
+        return true;
+
+    }
+    catch(std::exception& e)
+    {
+        std::cerr << e.what() << std::endl;
+        return false;
+    }
+
+}
+
+
+
+
+bool ShapeSensingInterface::fetchDataFromTCPIP()
+{
+    if(m_socket.available() < 4)
+    {
+        std::cout << "[FBGS] Data not ready!" << std::endl;
+        return false;
+    }
+
+    try
+    {
 
         boost::asio::streambuf data;
 
         //Now read the remaining ASCII string of the current data package
-        boost::asio::read(m_socket,data,boost::asio::transfer_exactly(size));
-
-//        std::string s((std::istreambuf_iterator<char>(&data)), std::istreambuf_iterator<char>() );
-//        buffer_copy(boost::asio::buffer(m_data_stack), data.data());
-        m_data_stack[index] = std::string((std::istreambuf_iterator<char>(&data)), std::istreambuf_iterator<char>() );
+        boost::asio::read(m_socket,
+                          data,
+                          boost::asio::transfer_exactly(m_size));
 
 
-//        data << m_data_stack[index].c_str();
+        m_data_stack.push_back( std::string((std::istreambuf_iterator<char>(&data)), std::istreambuf_iterator<char>() ));
+
 
         return true;
 
@@ -154,21 +187,28 @@ bool ShapeSensingInterface::fetchDataFromTCPIP(const unsigned int index)
 ShapeSensingInterface::Sample ShapeSensingInterface::processDataAtIndex(const unsigned int index)
 {
 
-    ShapeSensingInterface::Sample sample;
-
     std::string data_string;
-    boost::asio::streambuf data;
 
-    std::iostream os(&data);
 
-    os << m_data_stack[index];
+//    boost::asio::streambuf data;
 
-//    buffer_copy(data, .c_str());
-    std::istream is(&data);
+
+//    if(not m_buffers_stack.empty()){
+//        boost::asio::buffer_copy(&data, &m_buffers_stack[index]);
+//    } else {
+//        std::iostream os(&data);
+//        os << m_data_stack[index];
+//    }
+
+
+
+    std::istream is(&m_buffers_stack[index]);
+
+
+
 
     //Create new, empty sample and set the passed sample to it
-//    			Sample new_sample;
-//    			sample = new_sample;
+    ShapeSensingInterface::Sample sample;
 
     //Skip first two entries (date and time)
     getline(is,data_string, '\t');
@@ -313,195 +353,6 @@ ShapeSensingInterface::Sample ShapeSensingInterface::processDataAtIndex(const un
     return sample;
 }
 
-bool ShapeSensingInterface::readNextSample(Sample &sample)
-{
-	if(!m_connected)
-	{
-		
-		std::cout << "[FBGS] TCP not connected!" << std::endl;
-		return false;
-	}
-	else if(m_socket.available() < 4)
-	{
-		std::cout << "[FBGS] Data not ready!" << std::endl;
-		return false;
-	}	
-	else
-	{
-		
-		try
-		{
-			char buffer[4];
-			//First read the first 4 bytes to figure out the size of the following ASCII string
-			size_t size_read = boost::asio::read(m_socket,boost::asio::buffer(&buffer,4));
-			
-			//Convert the received bytes to signed integer
-			int size = int((unsigned char)(buffer[0]) << 24 |
-            (unsigned char)(buffer[1]) << 16 |
-            (unsigned char)(buffer[2]) << 8 |
-            (unsigned char)(buffer[3]));
-			
-			
-			boost::asio::streambuf data;
-			//Now read the remaining ASCII string of the current data package
-			size_read = boost::asio::read(m_socket,data,boost::asio::transfer_exactly(size));
-			
-			
-			std::string data_string;
-			std::istream is(&data);
-			
-			//Create new, empty sample and set the passed sample to it
-            Sample new_sample;
-            sample = new_sample;
-			
-			//Skip first two entries (date and time)
-			getline(is,data_string, '\t'); 
-			getline(is,data_string, '\t'); 
-			
-			//Next string is the sample number
-			getline(is,data_string, '\t'); 
-			sample.sample_number = std::stoi(data_string);
-			
-			//Next string is number of channels
-			getline(is,data_string, '\t'); 
-			sample.num_channels = std::stoi(data_string);
-			
-			//Now we run through all channels
-			for(int i = 0; i < sample.num_channels; i++)
-			{
-				
-				//Next string is channel number
-				getline(is,data_string, '\t'); 
-                sample.channels[i].channel_number = std::stoi(data_string);
-				
-				//Next string is number of gratings
-				getline(is,data_string, '\t'); 
-                sample.channels[i].num_gratings = std::stoi(data_string);
-				
-				//Next is error status
-				getline(is,data_string, '\t'); 
-                sample.channels[i].error_status(0) = std::stoi(data_string);
-				getline(is,data_string, '\t'); 
-                sample.channels[i].error_status(1) = std::stoi(data_string);
-				getline(is,data_string, '\t'); 
-                sample.channels[i].error_status(2) = std::stoi(data_string);
-				getline(is,data_string, '\t'); 
-                sample.channels[i].error_status(3) = std::stoi(data_string);
-				
-				//Next is peak wavelengths
-                sample.channels[i].peak_wavelengths.resize(sample.channels[i].num_gratings);
-                for(int j = 0; j < sample.channels[i].num_gratings; j++)
-				{
-					getline(is,data_string, '\t'); 
-                    sample.channels[i].peak_wavelengths(j) = std::stod(data_string);
-				}
-				
-				//Next is peak powers
-                sample.channels[i].peak_powers.resize(sample.channels[i].num_gratings);
-                for(int j = 0; j < sample.channels[i].num_gratings; j++)
-				{
-					getline(is,data_string, '\t'); 
-                    sample.channels[i].peak_powers(j) = std::stod(data_string);
-				}	
-				
-				
-			}
-			
-			
-			//Now run through the file to the end
-			getline(is,data_string, '\t'); 
-            int i = 0;
-			while(data_string == "Curvature [1/cm]")
-			{
-                sample.sensors[i].num_curv_points = sample.channels.at(0 + 4*i).num_gratings;
-				
-				//Save kappa (curvature) values
-                sample.sensors[i].kappa.resize(sample.sensors[i].num_curv_points);
-                for(int j = 0; j < sample.sensors[i].num_curv_points; j++)
-				{
-					getline(is,data_string, '\t'); 
-                    sample.sensors[i].kappa(j) = 100*std::stod(data_string); //convert 1/cm to 1/m
-				}	
-				
-				//Next entry is text field (skip)
-				getline(is,data_string, '\t'); 
-				
-				//Save phi (curvature angle) values in rad
-                sample.sensors[i].phi.resize(sample.sensors[i].num_curv_points);
-                for(int j = 0; j < sample.sensors[i].num_curv_points; j++)
-				{
-					getline(is,data_string, '\t'); 
-                    sample.sensors[i].phi(j) = std::stod(data_string);
-				}
-				
-				//Next entry is text field (skip)
-				getline(is,data_string, '\t'); 	
-				
-				//Next entry is number of shape points
-				getline(is,data_string, '\t'); 	
-                sample.sensors[i].num_shape_points = std::stoi(data_string);
-				
-                sample.sensors[i].shape.resize(sample.sensors[i].num_shape_points,3);
-                sample.sensors[i].arc_length.resize(sample.sensors[i].num_shape_points);
-				
-				//Save all x values and arclength values
-                for(int j = 0; j < sample.sensors[i].num_shape_points; j++)
-				{
-					//X
-					getline(is,data_string, '\t'); 
-                    sample.sensors[i].shape(j,0) = 0.01*std::stod(data_string); //convert cm to m
-					//Arc legnth
-                    sample.sensors[i].arc_length(j) = 0.001*j; //1 mm resolution, starting at 0
-				}
-				
-				
-				//Next entry is text field (skip) and again number of shape points (skip too)
-				getline(is,data_string, '\t');
-				getline(is,data_string, '\t'); 
-				
-				//Save all y values 
-                for(int j = 0; j < sample.sensors[i].num_shape_points; j++)
-				{
-					//X
-					getline(is,data_string, '\t'); 
-                    sample.sensors[i].shape(j,1) = 0.01*std::stod(data_string); //convert cm to m
-				}
-				
-				
-				//Next entry is text field (skip) and again number of shape points (skip too)
-				getline(is,data_string, '\t');
-				getline(is,data_string, '\t'); 
-				
-				//Save all z values 
-                for(int j = 0; j < sample.sensors[i].num_shape_points; j++)
-				{
-					//Z
-					getline(is,data_string, '\t'); 
-                    sample.sensors[i].shape(j,2) = 0.01*std::stod(data_string); //convert cm to m
-				}
-				
-				
-				//Next entry is either new curvature data (while loop will restart and add new sensor) or new line (no new sensor)
-				getline(is,data_string, '\t');
-				
-				
-                i++;
-			}
-			
-			
-			return true;
-					
-		}
-		catch(std::exception& e)
-		{
-			std::cerr << e.what() << std::endl;
-			return false;
-		}
-		
-	}
-	
-	
-}
 
 
 
@@ -521,41 +372,228 @@ THREAD_FUNCTION_RETURN_TYPE ShapeSensingInterface::m_loop(void* instance_pointer
 
 void ShapeSensingInterface::recordingLoop()
 {
-    unsigned int index = 0;
-    unsigned int max_index = m_data_stack.size();
 
-    char buffer[4];
-    auto asio_buffer = boost::asio::buffer(&buffer,4);
-    int size;
-    boost::asio::streambuf data;
-    while(not m_stop_loop
-           and index<max_index){
+    unsigned int index = 0;
+    while(not m_stop_loop){
+
+        if(nextSampleReady()){
+            if(fetchDataFromTCPIP(index)){
+
+                if(m_start_recording)
+                    index++;
+                if(index>m_total_number_of_steps)
+                    m_stop_loop=true;
+
+                m_spinner.spin();
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool ShapeSensingInterface::readNextSample(Sample &sample)
+{
+    if(!m_connected)
+    {
+
+        std::cout << "[FBGS] TCP not connected!" << std::endl;
+        return false;
+    }
+    else if(m_socket.available() < 4)
+    {
+        std::cout << "[FBGS] Data not ready!" << std::endl;
+        return false;
+    }
+    else
+    {
 
         try
         {
+            char buffer[4];
+            //First read the first 4 bytes to figure out the size of the following ASCII string
+            size_t size_read = boost::asio::read(m_socket,boost::asio::buffer(&buffer,4));
 
-            //  First read the first 4 bytes to figure out the size of the following ASCII string
-            boost::asio::read(m_socket, asio_buffer);
-
-            //  Convert the received bytes to signed integer
-            size = int((unsigned char)(buffer[0]) << 24 |
-                       (unsigned char)(buffer[1]) << 16 |
-                       (unsigned char)(buffer[2]) << 8 |
-                       (unsigned char)(buffer[3]));
+            //Convert the received bytes to signed integer
+            int size = int((unsigned char)(buffer[0]) << 24 |
+                           (unsigned char)(buffer[1]) << 16 |
+                           (unsigned char)(buffer[2]) << 8 |
+                           (unsigned char)(buffer[3]));
 
 
-            //  Now read the remaining ASCII string of the current data package
-            boost::asio::read(m_socket,data,boost::asio::transfer_exactly(size));
+            boost::asio::streambuf data;
+            //Now read the remaining ASCII string of the current data package
+            size_read = boost::asio::read(m_socket,data,boost::asio::transfer_exactly(size));
 
-            //  Add data to stack
-            m_data_stack[index++] = std::string((std::istreambuf_iterator<char>(&data)), std::istreambuf_iterator<char>() );
+
+            std::string data_string;
+            std::istream is(&data);
+
+            //Create new, empty sample and set the passed sample to it
+            Sample new_sample;
+            sample = new_sample;
+
+            //Skip first two entries (date and time)
+            getline(is,data_string, '\t');
+            getline(is,data_string, '\t');
+
+            //Next string is the sample number
+            getline(is,data_string, '\t');
+            sample.sample_number = std::stoi(data_string);
+
+            //Next string is number of channels
+            getline(is,data_string, '\t');
+            sample.num_channels = std::stoi(data_string);
+
+            //Now we run through all channels
+            for(int i = 0; i < sample.num_channels; i++)
+            {
+
+                //Next string is channel number
+                getline(is,data_string, '\t');
+                sample.channels[i].channel_number = std::stoi(data_string);
+
+                //Next string is number of gratings
+                getline(is,data_string, '\t');
+                sample.channels[i].num_gratings = std::stoi(data_string);
+
+                //Next is error status
+                getline(is,data_string, '\t');
+                sample.channels[i].error_status(0) = std::stoi(data_string);
+                getline(is,data_string, '\t');
+                sample.channels[i].error_status(1) = std::stoi(data_string);
+                getline(is,data_string, '\t');
+                sample.channels[i].error_status(2) = std::stoi(data_string);
+                getline(is,data_string, '\t');
+                sample.channels[i].error_status(3) = std::stoi(data_string);
+
+                //Next is peak wavelengths
+                sample.channels[i].peak_wavelengths.resize(sample.channels[i].num_gratings);
+                for(int j = 0; j < sample.channels[i].num_gratings; j++)
+                {
+                    getline(is,data_string, '\t');
+                    sample.channels[i].peak_wavelengths(j) = std::stod(data_string);
+                }
+
+                //Next is peak powers
+                sample.channels[i].peak_powers.resize(sample.channels[i].num_gratings);
+                for(int j = 0; j < sample.channels[i].num_gratings; j++)
+                {
+                    getline(is,data_string, '\t');
+                    sample.channels[i].peak_powers(j) = std::stod(data_string);
+                }
+
+
+            }
+
+
+            //Now run through the file to the end
+            getline(is,data_string, '\t');
+            int i = 0;
+            while(data_string == "Curvature [1/cm]")
+            {
+                sample.sensors[i].num_curv_points = sample.channels.at(0 + 4*i).num_gratings;
+
+                //Save kappa (curvature) values
+                sample.sensors[i].kappa.resize(sample.sensors[i].num_curv_points);
+                for(int j = 0; j < sample.sensors[i].num_curv_points; j++)
+                {
+                    getline(is,data_string, '\t');
+                    sample.sensors[i].kappa(j) = 100*std::stod(data_string); //convert 1/cm to 1/m
+                }
+
+                //Next entry is text field (skip)
+                getline(is,data_string, '\t');
+
+                //Save phi (curvature angle) values in rad
+                sample.sensors[i].phi.resize(sample.sensors[i].num_curv_points);
+                for(int j = 0; j < sample.sensors[i].num_curv_points; j++)
+                {
+                    getline(is,data_string, '\t');
+                    sample.sensors[i].phi(j) = std::stod(data_string);
+                }
+
+                //Next entry is text field (skip)
+                getline(is,data_string, '\t');
+
+                //Next entry is number of shape points
+                getline(is,data_string, '\t');
+                sample.sensors[i].num_shape_points = std::stoi(data_string);
+
+                sample.sensors[i].shape.resize(sample.sensors[i].num_shape_points,3);
+                sample.sensors[i].arc_length.resize(sample.sensors[i].num_shape_points);
+
+                //Save all x values and arclength values
+                for(int j = 0; j < sample.sensors[i].num_shape_points; j++)
+                {
+                    //X
+                    getline(is,data_string, '\t');
+                    sample.sensors[i].shape(j,0) = 0.01*std::stod(data_string); //convert cm to m
+                    //Arc legnth
+                    sample.sensors[i].arc_length(j) = 0.001*j; //1 mm resolution, starting at 0
+                }
+
+
+                //Next entry is text field (skip) and again number of shape points (skip too)
+                getline(is,data_string, '\t');
+                getline(is,data_string, '\t');
+
+                //Save all y values
+                for(int j = 0; j < sample.sensors[i].num_shape_points; j++)
+                {
+                    //X
+                    getline(is,data_string, '\t');
+                    sample.sensors[i].shape(j,1) = 0.01*std::stod(data_string); //convert cm to m
+                }
+
+
+                //Next entry is text field (skip) and again number of shape points (skip too)
+                getline(is,data_string, '\t');
+                getline(is,data_string, '\t');
+
+                //Save all z values
+                for(int j = 0; j < sample.sensors[i].num_shape_points; j++)
+                {
+                    //Z
+                    getline(is,data_string, '\t');
+                    sample.sensors[i].shape(j,2) = 0.01*std::stod(data_string); //convert cm to m
+                }
+
+
+                //Next entry is either new curvature data (while loop will restart and add new sensor) or new line (no new sensor)
+                getline(is,data_string, '\t');
+
+
+                i++;
+            }
+
+
+            return true;
 
         }
         catch(std::exception& e)
         {
             std::cerr << e.what() << std::endl;
+            return false;
         }
 
     }
+
+
 }
+
 

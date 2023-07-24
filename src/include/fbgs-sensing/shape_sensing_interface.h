@@ -62,13 +62,13 @@ public:
 
 
 
-	// Constructor 
-	ShapeSensingInterface(std::string ip_address, std::string port_number);
+//    // Constructor
+//    ShapeSensingInterface(std::string ip_address, std::string port_number);
 
     ShapeSensingInterface(const std::string ip_address,
                           const std::string port_number,
-                          const double t_recording_time,
-                          const double t_frequency);
+                          const double t_recording_time=0,
+                          const double t_frequency=100);
 	
 	// Simple destructor
 	~ShapeSensingInterface();
@@ -89,6 +89,9 @@ public:
     void startRecordingLoop();
 
 
+    bool fetchDataFromTCPIP();
+
+
 
 
 private:
@@ -107,17 +110,30 @@ private:
 
 
 
+
+
+    double m_recording_time { 0 };
+    double m_frequency { 100 };
+    double m_dt { 1.0f/m_frequency };
+    unsigned int m_total_number_of_steps { static_cast<unsigned int>(m_recording_time*m_frequency) };
+
+
+    real_time_tools::Spinner m_spinner {[this](){
+        real_time_tools::Spinner spinner;
+        spinner.set_frequency(1.5*m_frequency);
+        return spinner;
+    }()};
+
     real_time_tools::RealTimeThread m_rt_thread;
     static THREAD_FUNCTION_RETURN_TYPE m_loop(void* instance_pointer);
     void recordingLoop();
     bool m_stop_loop { false };
-    real_time_tools::Spinner m_spinner;
-    double m_recording_time;
-    double m_frequency { 100 };
-    double m_dt { 1.0f/m_frequency };
 
-    std::vector<std::string> m_data_stack { std::vector<std::string>(static_cast<int>(m_recording_time / m_dt)) };
+    bool m_start_recording { false };
 
 
+    std::vector<std::string> m_data_stack;
+
+    std::vector<boost::asio::streambuf> m_buffers_stack { std::vector<boost::asio::streambuf>(m_total_number_of_steps) };
 };
 
