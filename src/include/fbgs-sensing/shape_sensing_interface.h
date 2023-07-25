@@ -13,8 +13,12 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 
+#include <memory>
+
+#include <real_time_tools/timer.hpp>
 #include <real_time_tools/spinner.hpp>
 #include <real_time_tools/thread.hpp>
+#include <time_series/time_series.hpp>
 
 // This class implements a simple interface to the FBGS sensing system utilizing TCP sockets
 class ShapeSensingInterface
@@ -51,6 +55,7 @@ public:
 
 
         int sample_number;
+        std::chrono::high_resolution_clock::time_point time_stamp;
         int num_channels;
         int num_sensors;
 
@@ -67,11 +72,15 @@ public:
 
     ShapeSensingInterface(const std::string ip_address,
                           const std::string port_number,
+                          std::shared_ptr<const bool> t_stop_demos,
+                          std::shared_ptr<const bool> t_start_recording,
                           const double t_recording_time=0,
                           const double t_frequency=100);
 	
 	// Simple destructor
 	~ShapeSensingInterface();
+
+
 	
 
 	
@@ -120,20 +129,27 @@ private:
 
     real_time_tools::Spinner m_spinner {[this](){
         real_time_tools::Spinner spinner;
-        spinner.set_frequency(1.5*m_frequency);
+        spinner.set_frequency(2.0*m_frequency);
         return spinner;
     }()};
 
     real_time_tools::RealTimeThread m_rt_thread;
     static THREAD_FUNCTION_RETURN_TYPE m_loop(void* instance_pointer);
     void recordingLoop();
-    bool m_stop_loop { false };
 
-    bool m_start_recording { false };
+
+    std::shared_ptr<const bool> m_stop_demos { nullptr };
+
+    std::shared_ptr<const bool> m_start_recording { nullptr };
 
 
     std::vector<std::string> m_data_stack;
 
-    std::vector<boost::asio::streambuf> m_buffers_stack { std::vector<boost::asio::streambuf>(m_total_number_of_steps) };
+    std::vector<boost::asio::streambuf> m_buffers_stack {
+        std::vector<boost::asio::streambuf>(m_total_number_of_steps)
+    };
+    std::vector<std::chrono::high_resolution_clock::time_point> m_time_stamps {
+        std::vector<std::chrono::high_resolution_clock::time_point>(m_total_number_of_steps)
+    };
 };
 

@@ -62,56 +62,56 @@ int main(int argc, char **argv)
 {
 
 
-    //Example code for Shape Sensing Interface
+//    //Example code for Shape Sensing Interface
 
-    ShapeSensingInterface interface(SERVER_ADDRESS, PORT_NUMBER);
+//    ShapeSensingInterface interface(SERVER_ADDRESS, PORT_NUMBER);
 
-    if(!interface.connect())
-        return 0;
+//    if(!interface.connect())
+//        return 0;
 
-    std::cout << "connected !" << std::endl;
-
-
-
-    ShapeSensingInterface::Sample sample;
-//    interface.initialiseMemory(sample);
-//    std::cout << "ok memory !" << std::endl;
-
-
-    const double frequency = 200; //Hz
-    const auto dt_ms = std::chrono::milliseconds(static_cast<unsigned int>((1.0/frequency)*1000));
-
-    const unsigned int max_count = 1000;
-    std::vector<unsigned int> sample_numbers(max_count);
-    unsigned int count = 0;
-    while(count<max_count)
-    {
-        if(interface.nextSampleReady())
-        {
-
-
-            if(interface.readNextSample(sample))
-            {
-                sample_numbers[count] = sample.sample_number;
-                count++;
-
-                const auto row = sample.sensors[0].shape.rows() - 1;
-                std::cout << "Tip pos : \n" << sample.sensors[0].shape.row(row) << "\n";
-
-            }
+//    std::cout << "connected !" << std::endl;
 
 
 
-
-        }
-
-        std::this_thread::sleep_for(dt_ms );
-
-
-    }
+//    ShapeSensingInterface::Sample sample;
+////    interface.initialiseMemory(sample);
+////    std::cout << "ok memory !" << std::endl;
 
 
-    processResult(sample_numbers);
+//    const double frequency = 200; //Hz
+//    const auto dt_ms = std::chrono::milliseconds(static_cast<unsigned int>((1.0/frequency)*1000));
+
+//    const unsigned int max_count = 1000;
+//    std::vector<unsigned int> sample_numbers(max_count);
+//    unsigned int count = 0;
+//    while(count<max_count)
+//    {
+//        if(interface.nextSampleReady())
+//        {
+
+
+//            if(interface.readNextSample(sample))
+//            {
+//                sample_numbers[count] = sample.sample_number;
+//                count++;
+
+//                const auto row = sample.sensors[0].shape.rows() - 1;
+//                std::cout << "Tip pos : \n" << sample.sensors[0].shape.row(row) << "\n";
+
+//            }
+
+
+
+
+//        }
+
+//        std::this_thread::sleep_for(dt_ms );
+
+
+//    }
+
+
+//    processResult(sample_numbers);
 
 
 //    std::cout << "\n\nNow new version \n\n" << std::endl;;
