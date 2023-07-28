@@ -43,6 +43,9 @@ add_executable(main
 target_link_libraries(main
     PUBLIC
         ${PROJECT_NAME}
+        debug utilities-debug
+        optimized utilities
+        yaml-cpp
 )
 
 add_executable(test_tcpip_connection

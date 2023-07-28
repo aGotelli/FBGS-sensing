@@ -6,9 +6,15 @@ close all
 % path = "../../data/fbgs/" + num2str(Hz) + "Hz/9s/";
 % shapes_file = yaml.loadFile("../../data/fbgs/200Hz/9s/simulation_results_9s.yaml");
 
-Hz = 100;
-path = "../../data/fbgs/" + num2str(Hz) + "Hz/two_sensors/";
-shapes_file = yaml.loadFile("../../data/fbgs/" + num2str(Hz) + "Hz/two_sensors/simulation_results_20s.yaml");
+% Hz = 100;
+% path = "../../data/fbgs/" + num2str(Hz) + "Hz/two_sensors/";
+% shapes_file = yaml.loadFile("../../data/fbgs/" + num2str(Hz) + "Hz/two_sensors/simulation_results_0s.yaml");
+
+
+
+% Hz = 100;
+% path = "../../data/fbgs/" + num2str(Hz) + "Hz/different_lenghts/";
+% shapes_file = yaml.loadFile("../../data/fbgs/" + num2str(Hz) + "Hz/different_lenghts/simulation_results_5s.yaml");
 
 
 make_video_rod = false;
@@ -25,29 +31,42 @@ save_figure_format = ".png";
 
 % number_of_snapshots = shapes_file.number_of_snapshots;
 number_of_snapshots = shapes_file.measurements.number_of_snapshots;
-number_of_sensors = shapes_file.measurements.number_of_sensors;
+number_of_sensors = 2;
 
 
-%   get matrices dimensons
-rod_shapes_stack = [];
-
-rods_shapes_stack = [];
 
 
-%   get matrices dimensons
-rod_shapes_stack = [];
 
-rods_shapes_stack = [];
+samples = shapes_file.samples;
+
+for sensor_number=1:number_of_sensors
 
 
-sensors = shapes_file.sensors;
-
-for it_t=1:number_of_snapshots
+    %   get matrices dimensons
+    rod_shapes_stack = [];
     
-    sensor_t = sensors{it_t};
-    for sensor_number=1:number_of_sensors
-        sensor = sensor_t(sensor_number);
-        sensor = sensor{1};
+    rods_shapes_stack = [];
+    
+    
+    %   get matrices dimensons
+    rod_shapes_stack = [];
+    
+    rods_shapes_stack = [];
+    
+    samples_numbers = [];
+
+    for it_t=1:number_of_snapshots
+        
+        sample = samples{it_t};
+    
+        sample_number = sample.sample_numb;
+        samples_numbers = [samples_numbers, sample_number];
+        
+    
+        sensors = sample.sensors;
+    
+        
+        sensor = sensors{sensor_number};
 
         shape = sensor.shape;
 
@@ -57,16 +76,88 @@ for it_t=1:number_of_snapshots
         
         rod_shape = zeros(number_of_points, 3);
 
-        begin = sensor_number*3 + 1;
-        last = begin + 2;
+
         for i=1:number_of_points
             rod_shape(i, 1) = rod_shape_vector(i + 0 * number_of_points);
             rod_shape(i, 2) = rod_shape_vector(i + 1 * number_of_points);
             rod_shape(i, 3) = rod_shape_vector(i + 2 * number_of_points);
             
-            rod_shapes_stack(it_t, :, begin:last) = rod_shape;
+            
         end
+
+        rod_shapes_stack(it_t, :, :) = rod_shape;
     end
+
+    tip_pos = rod_shapes_stack(2:end, :, :);
+    tip_pos_pre = rod_shapes_stack(1:end-1, :, :);
+
+    tip_pos_diff = tip_pos - tip_pos_pre;
+
+    x_diff = tip_pos_diff(1);
+    y_diff = tip_pos_diff(2);
+    z_diff = tip_pos_diff(3);
+    
+    dt = 1/Hz;
+    
+    rod_velocitites = tip_pos_diff/dt;
+    rod_acelerations = tip_pos_diff/dt^2;
+
+    
+
+    sample_numbers_relative = samples_numbers - samples_numbers(1);
+
+    
+    % t_end = dt*number_of_snapshots;
+    % time_steps = linspace(0, t_end, number_of_snapshots);
+    time_steps = dt*sample_numbers_relative;
+
+
+    rows = size(rod_shapes_stack, 1);
+    cols = 3;
+    tip_positions = reshape(rod_shapes_stack(:, end, :), [rows, cols]);
+    name = "Rod " + int2str(sensor_number) + " tip positions";
+    fig = figure("Name", name);
+    plot(time_steps, tip_positions(:, 1), '-r', 'DisplayName', 'x')
+    hold on
+    plot(time_steps, tip_positions(:, 2), '-b', 'DisplayName', 'y')
+    plot(time_steps, tip_positions(:, 3), '-g', 'DisplayName', 'z')
+    legend('Location','best')
+    title(name)
+    ylabel("Position [m]")
+    xlabel("Time [s]")
+    filename = "Rod_" + int2str(sensor_number) + "_tip_positions";
+    saveas(fig, path + filename + save_figure_format)
+    saveas(fig, path + filename + ".fig")
+    
+    
+    name = "Rod " + int2str(sensor_number) + " tip velocities";
+    fig = figure("Name", name);
+    plot(time_steps(2:end), rod_velocitites(:, end, 1), '-r', 'DisplayName', 'x')
+    hold on
+    plot(time_steps(2:end), rod_velocitites(:, end, 2), '-b', 'DisplayName', 'y')
+    plot(time_steps(2:end), rod_velocitites(:, end, 3), '-g', 'DisplayName', 'z')
+    legend('Location','best')
+    title(name)
+    ylabel("Velocities [m/s]")
+    xlabel("Time [s]")
+    filename = "Rod_" + int2str(sensor_number) + "_tip_velocities";
+    saveas(fig, path + filename + save_figure_format)
+    saveas(fig, path + filename + ".fig")
+    
+    name = "Rod " + int2str(sensor_number) + " tip accelerations";
+    fig = figure("Name", name);
+    plot(time_steps(2:end), rod_acelerations(:, end, 1), '-r', 'DisplayName', 'x')
+    hold on
+    plot(time_steps(2:end), rod_acelerations(:, end, 2), '-b', 'DisplayName', 'y')
+    plot(time_steps(2:end), rod_acelerations(:, end, 3), '-g', 'DisplayName', 'z')
+    legend('Location','best')
+    title(name)
+    ylabel("Accelerations [m/s^2]")
+    xlabel("Time [s]")
+    filename = "Rod_" + int2str(sensor_number) + "_tip_accelerations";
+    saveas(fig, path + filename + save_figure_format)
+    saveas(fig, path + filename + ".fig")
+
 end
 
 
@@ -111,75 +202,6 @@ end
 
 
 
-for sensor_number=1:number_of_sensors
-    begin = sensor_number*3 + 1;
-    last = begin + 2;
-
-    tip_pos = rod_shapes_stack(2:end, :, begin:last);
-    tip_pos_pre = rod_shapes_stack(1:end-1, :, begin:last);
-
-    tip_pos_diff = tip_pos - tip_pos_pre;
-
-    x_diff = tip_pos_diff(1);
-    y_diff = tip_pos_diff(2);
-    z_diff = tip_pos_diff(3);
-    
-    dt = 1/Hz;
-    
-    rod_velocitites = tip_pos_diff/dt;
-    rod_acelerations = tip_pos_diff/dt^2;
-
-    
-    t_end = dt*number_of_snapshots;
-    time_steps = linspace(0, t_end, number_of_snapshots);
-    
-    rows = size(rod_shapes_stack, 1);
-    cols = 3;
-    tip_positions = reshape(rod_shapes_stack(:, end, begin:last), [rows, cols]);
-    name = "Rod " + int2str(sensor_number) + " tip positions";
-    fig = figure("Name", name);
-    plot(time_steps, tip_positions(:, 1), '-r', 'DisplayName', 'x')
-    hold on
-    plot(time_steps, tip_positions(:, 2), '-b', 'DisplayName', 'y')
-    plot(time_steps, tip_positions(:, 3), '-g', 'DisplayName', 'z')
-    legend('Location','best')
-    title(name)
-    ylabel("Position [m]")
-    xlabel("Time [s]")
-    filename = "Rod_" + int2str(sensor_number) + "_tip_positions";
-    saveas(fig, path + filename + save_figure_format)
-    saveas(fig, path + filename + ".fig")
-    
-    
-    name = "Rod " + int2str(sensor_number) + " tip velocities";
-    fig = figure("Name", name);
-    plot(time_steps(2:end), rod_velocitites(:, end, 1), '-r', 'DisplayName', 'x')
-    hold on
-    plot(time_steps(2:end), rod_velocitites(:, end, 2), '-b', 'DisplayName', 'y')
-    plot(time_steps(2:end), rod_velocitites(:, end, 3), '-g', 'DisplayName', 'z')
-    legend('Location','best')
-    title(name)
-    ylabel("Velocities [m/s]")
-    xlabel("Time [s]")
-    filename = "Rod_" + int2str(sensor_number) + "_tip_velocities";
-    saveas(fig, path + filename + save_figure_format)
-    saveas(fig, path + filename + ".fig")
-    
-    name = "Rod " + int2str(sensor_number) + " tip accelerations";
-    fig = figure("Name", "Rod tip accelerations");
-    plot(time_steps(2:end), rod_acelerations(:, end, 1), '-r', 'DisplayName', 'x')
-    hold on
-    plot(time_steps(2:end), rod_acelerations(:, end, 2), '-b', 'DisplayName', 'y')
-    plot(time_steps(2:end), rod_acelerations(:, end, 3), '-g', 'DisplayName', 'z')
-    legend('Location','best')
-    title(name)
-    ylabel("Accelerations [m/s^2]")
-    xlabel("Time [s]")
-    filename = "Rod_" + int2str(sensor_number) + "_tip_accelerations";
-    saveas(fig, path + filename + save_figure_format)
-    saveas(fig, path + filename + ".fig")
-
-end
 
 if make_video_tip
 

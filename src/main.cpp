@@ -1,7 +1,3 @@
-/*
-This code implements an interface to the FBGS sensing system
-Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toronto Mississauga
-*/
 
 //includes
 #include <iostream>
@@ -10,146 +6,272 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 #include <Eigen/Dense>
 
 
+#include <yaml-cpp/yaml.h>
+#include <fstream>
+
+
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 
 #include "fbgs-sensing/shape_sensing_interface.h"
-#include "fbgs-sensing/illumisense_interface.h"
 
-#include <algorithm>
+#include "utilities/Eigen/eigen_io.hpp"
+
+#include <real_time_tools/spinner.hpp>
+#include <real_time_tools/thread.hpp>
+
+//#include "matplotlibcpp.h"
 
 //defines
 #define SERVER_ADDRESS "192.168.1.11"
 #define PORT_NUMBER "5001" //Default port number for Shape Sensing
-//#define PORT_NUMBER "2055" //Default port number for Illumisense
-//#define CALIB_FILE "/home/sven/Downloads/PR2022_14_53_01_S01 - calib.txt"
-
-#include <algorithm>
-#include <numeric>
 
 
-void processResult(const std::vector<unsigned int> &sample_numbers)
+
+std::shared_ptr<bool> StopDemos =
+    std::make_shared<bool>(false);
+
+
+
+
+void my_handler(int)
 {
-    std::vector<unsigned int> steps;
-    for(unsigned int i=1; i<sample_numbers.size(); i++){
-        unsigned int diff = sample_numbers[i] - sample_numbers[i-1];
-        steps.push_back(diff);
-        //std::cout << "diff : " << diff << "\n";
-    }
-
-    steps.erase(steps.begin(), steps.begin()+3);
-
-    std::vector<unsigned int> step_jumps;
-
-    std::copy_if(steps.begin(), steps.end(),
-                 std::back_inserter(step_jumps), [&](unsigned int diff){ return diff>1?true:false;});
-
-
-    unsigned int total = std::accumulate(step_jumps.begin(), step_jumps.end(), 0);
-    const auto min_max = std::minmax_element(step_jumps.begin(), step_jumps.end());
+    *StopDemos = true;
+}
 
 
 
-    double percentage = 100.0*static_cast<double>(step_jumps.size())/static_cast<double>(steps.size());
-    std::cout << "number of steps lost : " << step_jumps.size() << " On a total of " << steps.size() << " steps -> " << percentage << "%\n";
-    if(not step_jumps.empty())
-        std::cout << "Everage lost : " << total/step_jumps.size() << ", min lost : " << *min_max.first.base() << ", max lost : " << *min_max.second.base() << "\n\n";
+
+std::shared_ptr<bool> start_recording =
+    std::make_shared<bool>(false);
+
+
+#include <thread>
+
+
+
+// The function we want to execute on the new thread.
+void wait_input()
+{
+    std::cout << "input to continue \n\n\n\n";
+    std::cout.flush();
+    getchar();
+    std::cout << "ok \n\n\n\n";
     std::cout.flush();
 
+    *start_recording = true;
 }
 
-int main(int argc, char **argv)
+
+void saveMeasurementsAsYaml(const std::vector<ShapeSensingInterface::Sample> &t_samples_stack,
+                            const double t_sensor_reading_frequency,
+                            const double t_recording_time);
+
+
+int main(int, char **)
 {
+    // make sure we catch the ctrl+c signal to kill the application properly.
+    struct sigaction sigIntHandler;
+    sigIntHandler.sa_handler = my_handler;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+    sigaction(SIGINT, &sigIntHandler, NULL);
+    *StopDemos = false;
 
 
-//    //Example code for Shape Sensing Interface
+    //Example code for Shape Sensing Interface
 
-//    ShapeSensingInterface interface(SERVER_ADDRESS, PORT_NUMBER);
+    ShapeSensingInterface interface(SERVER_ADDRESS,PORT_NUMBER,
+                                    StopDemos,
+                                    start_recording);
 
-//    if(!interface.connect())
-//        return 0;
+    ShapeSensingInterface::Sample sample;
+    std::vector<ShapeSensingInterface::Sample> samples_stack;
 
-//    std::cout << "connected !" << std::endl;
-
-
-
-//    ShapeSensingInterface::Sample sample;
-////    interface.initialiseMemory(sample);
-////    std::cout << "ok memory !" << std::endl;
-
-
-//    const double frequency = 200; //Hz
-//    const auto dt_ms = std::chrono::milliseconds(static_cast<unsigned int>((1.0/frequency)*1000));
-
-//    const unsigned int max_count = 1000;
-//    std::vector<unsigned int> sample_numbers(max_count);
-//    unsigned int count = 0;
-//    while(count<max_count)
-//    {
-//        if(interface.nextSampleReady())
-//        {
-
-
-//            if(interface.readNextSample(sample))
-//            {
-//                sample_numbers[count] = sample.sample_number;
-//                count++;
-
-//                const auto row = sample.sensors[0].shape.rows() - 1;
-//                std::cout << "Tip pos : \n" << sample.sensors[0].shape.row(row) << "\n";
-
-//            }
+    if(!interface.connect())
+        return 0;
 
 
 
 
-//        }
+    //    std::chrono::high_resolution_clock::time_point current;
+    //    double current_time;
+    //    double delta_time;
+    //    double previus_iteration_end_time;
 
-//        std::this_thread::sleep_for(dt_ms );
+    const double sensor_reading_frequency = 100.0f;  //  Hz
+    const double dt = 1.0f/sensor_reading_frequency;
+    const double recording_time = 5; //    s
+
+    real_time_tools::Spinner spinner;
+    double spinner_reading_frequency = 20.0*sensor_reading_frequency;  //  Hz
+    double dt_spinner = 1.0f/spinner_reading_frequency;
+    spinner.set_period( dt_spinner );
 
 
-//    }
+    int count = 0;
+    const int max_count = static_cast<unsigned int>(recording_time/dt);
+    samples_stack.resize(max_count);
 
 
-//    processResult(sample_numbers);
-
-
-//    std::cout << "\n\nNow new version \n\n" << std::endl;;
-
-//    interface.m_data_stack.resize(max_count);
-
-//    count = 0;
-//    while(count<max_count)
-//    {
-//        if(interface.nextSampleReady())
-//        {
-//            if(interface.fetchDataFromTCPIP(count))
-//            {
-//                count++;
-//            }
-
-//        }
-
-//        std::this_thread::sleep_for(dt_ms );
-
-//    }
-
-//    std::vector<unsigned int> sample_numbers_new(max_count);
-//    for(unsigned int index=0; auto& sample_number : sample_numbers_new)
-//        sample_number = interface.processDataAtIndex(index++).sample_number;
+    //    std::thread thread(wait_input);
+    //    thread.join();
 
 
 
 
+    //    current = std::chrono::high_resolution_clock::now();
+    //    elapsed = current - start;
+    std::chrono::duration<double> elapsed;
+    double elapsed_ms = 0;
+    std::chrono::high_resolution_clock::time_point current;
+    std::chrono::high_resolution_clock::time_point previous;
 
 
-//    processResult(sample_numbers_new);
+    std::cout << "input to continue \n\n\n\n";
+    std::cout.flush();
+    getchar();
+    std::cout << "ok \n\n\n\n";
+    std::cout.flush();
+
+    //  Dump old samples
+
+    unsigned int dumped = 0;
+    while(interface.nextSampleReady()){
+        interface.readNextSample(sample);
+        dumped++;
+    }
+
+    std::cout << "dumped : " << dumped << " samples." << std::endl;
 
 
+    previous = std::chrono::high_resolution_clock::now();
+    while(count<max_count && *StopDemos == false)
+    {
+        current = std::chrono::high_resolution_clock::now();
+
+        if(interface.nextSampleReady()){
+            if(interface.readNextSample(sample)){
+                samples_stack[count++] = sample;
+                std::cout << "count : " << count << "\r";
+                std::cout.flush();
+
+            }
+        }
+
+        elapsed = current - previous;
+        elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+
+        // local_time += m_dt;
+        while(*StopDemos == false and
+               elapsed_ms < dt*1000){
+            spinner.spin();
 
 
-    return 1;
+            current = std::chrono::high_resolution_clock::now();
+            elapsed = current - previous;
+            elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+        }
+
+        previous = current;
+    }
 
 
+    std::vector<int> steps;
+
+    int previus = samples_stack[0].sample_number;
+
+    for(unsigned int i=1; i<samples_stack.size(); i++){
+
+        int diff = samples_stack[i].sample_number - previus;
+        previus = samples_stack[i].sample_number;
+        if(diff != 0){
+            steps.push_back(diff);
+            std::cout << "diff : " << diff << "\n";
+        }
+    }
+
+    //    steps.erase(steps.begin(), steps.begin() + 10);
+
+    //    // Set the size of output image to 1200x780 pixels
+    //    matplotlibcpp::figure_size(1200, 780);
+    //    // Plot line from given x and y data. Color is selected automatically.
+    //    matplotlibcpp::plot<std::vector<int>>(steps);
+    //    // Add graph title
+    //    matplotlibcpp::title("Samples steps");
+
+    //    matplotlibcpp::show();
+
+    //    std::cout.flush();
+
+    std::cout << "size : " << samples_stack.size() << std::endl;
+
+
+    saveMeasurementsAsYaml(samples_stack,
+                           sensor_reading_frequency,
+                           recording_time);
+
+
+    return 0;
 
 }
+
+
+
+void saveMeasurementsAsYaml(const std::vector<ShapeSensingInterface::Sample> &t_samples_stack,
+                            const double t_sensor_reading_frequency,
+                            const double t_recording_time)
+{
+    YAML::Node measurement_data;
+
+    YAML::Node header;
+    std::time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    header["date"] = std::ctime(&time);
+    header["notes"] = "";
+    measurement_data["header"] = header;
+
+    YAML::Node measurements;
+    measurements["number_of_snapshots"] = t_samples_stack.size();
+    measurements["frequency"] = t_sensor_reading_frequency;
+    measurements["number_of_sensors"] = t_samples_stack[0].num_sensors;
+
+
+    measurement_data["measurements"] = measurements;
+
+    YAML::Node FBGS;
+
+    for(const auto& fbgs_sample : t_samples_stack){
+
+
+        YAML::Node sample;
+
+        sample["sample_numb"] = fbgs_sample.sample_number;
+        //        data["time_stamp"] = sample.time_stamp;
+
+        YAML::Node sensors;
+        for(const auto& sensor : fbgs_sample.sensors){
+            YAML::Node shape;
+            shape["arc_length"] = matrixToYamlNode(sensor.arc_length);
+            shape["shape"] = matrixToYamlNode(sensor.shape);
+
+            sensors.push_back(shape);
+        }
+
+        sample["sensors"] = sensors;
+
+
+        measurement_data["samples"].push_back(sample);
+
+    }
+
+
+
+    const std::string path = "data/" + std::to_string(static_cast<int>(t_sensor_reading_frequency)) + "Hz/prove";
+    const std::string name = "simulation_results_" + std::to_string(static_cast<int>(t_recording_time)) + "s.yaml";
+
+
+
+    SaveFile(measurement_data, name, path);
+
+}
+

@@ -5,6 +5,7 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 
 #pragma once
 
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -86,25 +87,21 @@ public:
 	
 	
 	bool connect();
-	bool nextSampleReady();
-	bool readNextSample(Sample &sample);
+    bool nextSampleReady();
+    bool readNextSample(Sample &sample);
 
+    void extracted(Sample const &sample, Eigen::VectorXd &sample_data,
+                   unsigned int &index) const;
+    Eigen::MatrixXd getDataAsEigenMatrix() const;
 
-    bool fetchDataFromTCPIP(const unsigned int index);
+    //    bool fetchDataFromTCPIP(unsigned int &index);
 
-    Sample processDataAtIndex(const unsigned int index);
+    //    Sample processDataAtIndex(const unsigned int index);
 
+    //    bool fetchDataFromTCPIP();
 
-    void startRecordingLoop();
-
-
-    bool fetchDataFromTCPIP();
-
-
-
-
-private:
-
+    void recordingLoop();
+    // private:
 
     int m_size;
 
@@ -123,19 +120,16 @@ private:
 
     double m_recording_time { 0 };
     double m_frequency { 100 };
-    double m_dt { 1.0f/m_frequency };
+    double m_dt_ms { (1.0f/m_frequency)*1000 };
     unsigned int m_total_number_of_steps { static_cast<unsigned int>(m_recording_time*m_frequency) };
 
 
     real_time_tools::Spinner m_spinner {[this](){
         real_time_tools::Spinner spinner;
-        spinner.set_frequency(2.0*m_frequency);
+        spinner.set_frequency(100*m_frequency);
         return spinner;
     }()};
 
-    real_time_tools::RealTimeThread m_rt_thread;
-    static THREAD_FUNCTION_RETURN_TYPE m_loop(void* instance_pointer);
-    void recordingLoop();
 
 
     std::shared_ptr<const bool> m_stop_demos { nullptr };
@@ -143,13 +137,20 @@ private:
     std::shared_ptr<const bool> m_start_recording { nullptr };
 
 
-    std::vector<std::string> m_data_stack;
+//    std::vector<std::string> m_data_stack {
+//        std::vector<std::string>(m_total_number_of_steps)
+//    };
 
-    std::vector<boost::asio::streambuf> m_buffers_stack {
-        std::vector<boost::asio::streambuf>(m_total_number_of_steps)
+//    std::vector<boost::asio::streambuf> m_buffers_stack {
+//        std::vector<boost::asio::streambuf>(m_total_number_of_steps)
+//    };
+
+    std::vector<Sample> m_samples {
+        std::vector<Sample>(m_total_number_of_steps)
     };
-    std::vector<std::chrono::high_resolution_clock::time_point> m_time_stamps {
-        std::vector<std::chrono::high_resolution_clock::time_point>(m_total_number_of_steps)
-    };
+
+//    std::vector<std::chrono::high_resolution_clock::time_point> m_time_stamps {
+//        std::vector<std::chrono::high_resolution_clock::time_point>(m_total_number_of_steps)
+//    };
 };
 
