@@ -74,3 +74,16 @@ target_link_libraries(read_and_save_data
         optimized utilities
         yaml-cpp
 )
+
+
+add_executable(save_with_mutex
+    save_with_mutex.cpp
+)
+
+target_link_libraries(save_with_mutex
+    PUBLIC
+        ${PROJECT_NAME}
+        debug utilities-debug
+        optimized utilities
+        yaml-cpp
+)

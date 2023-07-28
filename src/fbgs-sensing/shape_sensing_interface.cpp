@@ -148,22 +148,24 @@ void ShapeSensingInterface::recordingLoop()
 
 
         current = std::chrono::high_resolution_clock::now();
-
+        mutex.lock();
 //        rt_printf("Current time : %2li \n", current.time_since_epoch().count());
         if(nextSampleReady()){
 
-            mutex.lock();
+
 //            readNextSample(m_samples[index]);
             readNextSample(m_sample);
 
             m_sample.time_stamp = current;
 
-            mutex.unlock();
+
 
 //            if(*m_start_recording)
 //                index++;
 
         }
+
+        mutex.unlock();
 
     }
 }
