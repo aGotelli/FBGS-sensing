@@ -41,6 +41,8 @@ ShapeSensingInterface::ShapeSensingInterface(const std::string ip_address,
 ShapeSensingInterface::~ShapeSensingInterface()
 {
     m_socket.close();
+
+    thread.join();
 }
 
 bool ShapeSensingInterface::connect()
@@ -117,20 +119,20 @@ bool ShapeSensingInterface::nextSampleReady()
 void ShapeSensingInterface::recordingLoop()
 {
 
-    std::chrono::high_resolution_clock::time_point start;
+//    std::chrono::high_resolution_clock::time_point start;
     std::chrono::high_resolution_clock::time_point current;
-    std::chrono::high_resolution_clock::time_point previus_iteration_end_time;
+//    std::chrono::high_resolution_clock::time_point previus_iteration_end_time;
 
-    std::chrono::duration<double> delta_time;
+//    std::chrono::duration<double> delta_time;
 
 
-    unsigned int index = 0;
+//    unsigned int index = 0;
 
-    Sample sample;
+//    Sample sample;
 
     unsigned int dumped = 0;
     while(nextSampleReady()){
-        readNextSample(sample);
+        readNextSample(m_sample);
         dumped++;
     }
 
@@ -138,9 +140,9 @@ void ShapeSensingInterface::recordingLoop()
 
 
 
-    start = std::chrono::high_resolution_clock::now();
+//    start = std::chrono::high_resolution_clock::now();
     while(not *m_stop_demos
-           and index < m_total_number_of_steps){
+           /*and index < m_total_number_of_steps*/){
 
 
 
@@ -150,33 +152,19 @@ void ShapeSensingInterface::recordingLoop()
 //        rt_printf("Current time : %2li \n", current.time_since_epoch().count());
         if(nextSampleReady()){
 
-            readNextSample(m_samples[index]);
+            mutex.lock();
+//            readNextSample(m_samples[index]);
+            readNextSample(m_sample);
 
-            m_samples[index].time_stamp = current;
+            m_sample.time_stamp = current;
 
-            if(*m_start_recording)
-                index++;
+            mutex.unlock();
+
+//            if(*m_start_recording)
+//                index++;
 
         }
 
-
-
-//        delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(current - previus_iteration_end_time);
-////        rt_printf("Delta time : %2f \n", delta_time.count());
-//        // local_time += m_dt;
-//        while(!*m_stop_demos and
-//               delta_time.count()*1000 <= m_dt_ms){
-
-//            m_spinner.spin();
-
-
-//            current = std::chrono::high_resolution_clock::now();
-
-//            delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(current - previus_iteration_end_time);
-////            rt_printf("Delta time : %2f \n", delta_time.count());
-//        }
-
-//        previus_iteration_end_time = current;
     }
 }
 

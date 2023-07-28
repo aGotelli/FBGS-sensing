@@ -21,6 +21,8 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 #include <real_time_tools/thread.hpp>
 #include <time_series/time_series.hpp>
 
+#include <mutex>
+
 // This class implements a simple interface to the FBGS sensing system utilizing TCP sockets
 class ShapeSensingInterface
 {
@@ -94,6 +96,25 @@ public:
                    unsigned int &index) const;
     Eigen::MatrixXd getDataAsEigenMatrix() const;
 
+
+    void startRecordinLoop()
+    {
+         thread = std::thread([&](){recordingLoop();});
+
+
+    }
+
+
+
+    void getSample(Sample &t_sample)
+    {
+         mutex.lock();
+
+         t_sample = m_sample;
+
+         mutex.unlock();
+    }
+
     //    bool fetchDataFromTCPIP(unsigned int &index);
 
     //    Sample processDataAtIndex(const unsigned int index);
@@ -145,9 +166,16 @@ public:
 //        std::vector<boost::asio::streambuf>(m_total_number_of_steps)
 //    };
 
+
+    std::thread thread;
+
     std::vector<Sample> m_samples {
         std::vector<Sample>(m_total_number_of_steps)
     };
+
+    Sample m_sample;
+
+    std::mutex mutex;
 
 //    std::vector<std::chrono::high_resolution_clock::time_point> m_time_stamps {
 //        std::vector<std::chrono::high_resolution_clock::time_point>(m_total_number_of_steps)
