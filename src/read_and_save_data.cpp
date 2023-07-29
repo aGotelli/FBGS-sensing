@@ -239,7 +239,7 @@ int main(int, char **)
     std::cout << "\n\n\n\n\n\n" "Saving data    \n\n\n\n\n\n";
     std::cout.flush();
 
-    const auto samples_stack = interface.m_samples;
+    const auto samples_stack = interface.m_samples_stack;
 
 
     YAML::Node FBGS_data;

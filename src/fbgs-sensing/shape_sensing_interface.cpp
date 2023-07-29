@@ -126,7 +126,7 @@ void ShapeSensingInterface::recordingLoop()
 //    std::chrono::duration<double> delta_time;
 
 
-//    unsigned int index = 0;
+
 
 //    Sample sample;
 
@@ -139,33 +139,25 @@ void ShapeSensingInterface::recordingLoop()
     std::cout << "dumped : " << dumped << " samples before starting the recording loop." << std::endl;
 
 
-
+    unsigned int index = 0;
 //    start = std::chrono::high_resolution_clock::now();
     while(not *m_stop_demos
-           /*and index < m_total_number_of_steps*/){
+           and index < m_total_number_of_steps){
 
 
 
 
         current = std::chrono::high_resolution_clock::now();
-        mutex.lock();
-//        rt_printf("Current time : %2li \n", current.time_since_epoch().count());
+//        mutex.lock();
         if(nextSampleReady()){
 
+            readNextSample(m_samples_stack[index]);
 
-//            readNextSample(m_samples[index]);
-            readNextSample(m_sample);
-
-            m_sample.time_stamp = current;
-
-
-
-//            if(*m_start_recording)
-//                index++;
+            if(*m_start_recording)
+                index++;
 
         }
 
-        mutex.unlock();
 
     }
 }
@@ -394,7 +386,7 @@ Eigen::MatrixXd ShapeSensingInterface::getDataAsEigenMatrix() const {
 
     unsigned int number_of_rows = 3;
 
-    for(const auto& sensor : m_samples[0].sensors){
+    for(const auto& sensor : m_samples_stack[0].sensors){
         unsigned int num_shape_points = sensor.num_shape_points;
 
         //  Add row for sensor number of points
@@ -411,7 +403,7 @@ Eigen::MatrixXd ShapeSensingInterface::getDataAsEigenMatrix() const {
     Eigen::MatrixXd data(number_of_rows, number_of_columns);
 
 
-    for(unsigned int col=0; const auto& sample : m_samples){
+    for(unsigned int col=0; const auto& sample : m_samples_stack){
 
         Eigen::VectorXd sample_data(number_of_rows);
 
