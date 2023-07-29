@@ -138,11 +138,11 @@ void ShapeSensingInterface::recordingLoop()
 
     std::cout << "dumped : " << dumped << " samples before starting the recording loop." << std::endl;
 
-
+    Sample sample;
     unsigned int index = 0;
 //    start = std::chrono::high_resolution_clock::now();
     while(not *m_stop_demos
-           and index < m_total_number_of_steps){
+           /*and index < m_total_number_of_steps*/){
 
 
 
@@ -151,10 +151,12 @@ void ShapeSensingInterface::recordingLoop()
 //        mutex.lock();
         if(nextSampleReady()){
 
-            readNextSample(m_samples_stack[index]);
+            readNextSample(sample);
 
-            if(*m_start_recording)
-                index++;
+            if(*m_start_recording){
+//                index++;
+                m_samples_stack.push_back( sample );
+            }
 
         }
 

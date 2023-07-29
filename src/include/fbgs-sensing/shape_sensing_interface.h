@@ -169,9 +169,9 @@ public:
 
     std::thread thread;
 
-    std::vector<Sample> m_samples_stack {
+    std::vector<Sample> m_samples_stack /*{
         std::vector<Sample>(m_total_number_of_steps)
-    };
+    }*/;
 
     Sample m_sample;
 
