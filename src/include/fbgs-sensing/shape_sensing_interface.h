@@ -23,6 +23,11 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 
 #include <mutex>
 
+#include <deque>
+
+
+#include <yaml-cpp/yaml.h>
+
 // This class implements a simple interface to the FBGS sensing system utilizing TCP sockets
 class ShapeSensingInterface
 {
@@ -97,6 +102,9 @@ public:
     Eigen::MatrixXd getDataAsEigenMatrix() const;
 
 
+    void getSamplesData(YAML::Node &t_FBGS_node, Eigen::MatrixXd &t_FBGS_data)const;
+
+
     void startRecordinLoop()
     {
          thread = std::thread([&](){recordingLoop();});
@@ -168,8 +176,9 @@ public:
 
 
     std::thread thread;
+    std::chrono::high_resolution_clock::time_point m_start;
 
-    std::vector<Sample> m_samples_stack /*{
+    std::deque<Sample> m_samples_stack /*{
         std::vector<Sample>(m_total_number_of_steps)
     }*/;
 
