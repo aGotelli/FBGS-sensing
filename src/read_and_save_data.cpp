@@ -209,7 +209,6 @@ int main(int, char **)
                                     PORT_NUMBER,
                                     StopDemos,
                                     start_recording,
-                                    recording_time,
                                     recording_frequency);
 
 
@@ -217,11 +216,7 @@ int main(int, char **)
         return 0;
 
 
-//    interface.startRecordingLoop();
-
-    std::thread thread([&](){interface.recordingLoop();});
-
-
+    interface.startRecordinLoop();
 
 
 
@@ -232,105 +227,38 @@ int main(int, char **)
     }
 
     *start_recording = true;
+    std::cout << "\n\n";
 
-    thread.join();
+    for(int i=5; i>=0; i--){
+        std::cout << "Recording : " << i << " s\r";
+        std::cout.flush();
+        std::this_thread::sleep_for(std::chrono::duration(std::chrono::seconds(1)));
+    }
+
+    *StopDemos = true;
+    *start_recording = false;
+
 
 
     std::cout << "\n\n\n\n\n\n" "Saving data    \n\n\n\n\n\n";
     std::cout.flush();
 
-    const auto samples_stack = interface.m_samples_stack;
 
 
-    YAML::Node FBGS_data;
+    YAML::Node FBGS_node;
+    Eigen::MatrixXd FBGS_data;
 
-    YAML::Node header;
-    std::time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    header["date"] = std::ctime(&time);
-    header["notes"] = "";
-    FBGS_data["header"] = header;
+    interface.getSamplesData(FBGS_node, FBGS_data);
 
-    YAML::Node measurements;
-    measurements["number_of_snapshots"] = samples_stack.size();
-    measurements["frequency"] = recording_frequency;
-    measurements["number_of_sensors"] = samples_stack[0].num_sensors;
-
-    measurements["data_storage"] = "colmajor";
-
-
-    YAML::Node order;
-    order.push_back("sample_number");
-    order.push_back("time_stamp");
-    order.push_back("number_of_sensors");
-
-    YAML::Node number_of_points_per_sensors;
-    number_of_points_per_sensors.push_back("number_of_datapoints");
-
-    order["number_of_points_per_sensors"] = number_of_points_per_sensors;
-
-
-    YAML::Node sensors_data;
-    sensors_data.push_back("arc_length_coordinates");
-    sensors_data.push_back("x_positions");
-    sensors_data.push_back("y_positions");
-    sensors_data.push_back("z_positions");
-
-    order["sensors_data"] = sensors_data;
-
-    measurements["data_order"] = order;
-
-
-    FBGS_data["measurements"] = measurements;
-
-
-    const auto samples_data = interface.getDataAsEigenMatrix();
-
-
-
-
-
-    const std::string path = "data/" + std::to_string(static_cast<int>(recording_frequency)) + "Hz/two_sensors";
+    const std::string path = "data/" + std::to_string(static_cast<int>(recording_frequency)) + "Hz/prova_new_interface";
     const std::string name = "simulation_results_" + std::to_string(static_cast<int>(recording_time)) + "s.yaml";
 
 
 
-    SaveFile(FBGS_data, name, path);
+    SaveFile(FBGS_node, name, path);
 
-    writeToFile("FBGS_data", samples_data, path);
+    writeToFile("FBGS_data", FBGS_data, path);
 
-
-
-
-//    for(const auto& sample : samples_stack){
-
-
-//        YAML::Node data;
-
-//        data["sample_numb"] = sample.sample_number;
-//        //        data["time_stamp"] = sample.time_stamp;
-
-//        YAML::Node sensors;
-//        for(const auto& sensor : sample.sensors){
-//            YAML::Node shape;
-//            shape["arc_length"] = matrixToYamlNode(sensor.arc_length);
-//            shape["shape"] = matrixToYamlNode(sensor.shape);
-
-//            sensors.push_back(shape);
-//        }
-
-
-//        measurement_data["sensors"].push_back(sensors);
-
-//    }
-
-
-
-//    const std::string path = "data/" + std::to_string(static_cast<int>(sensor_reading_frequency)) + "Hz/two_sensors";
-//    const std::string name = "simulation_results_" + std::to_string(static_cast<int>(recording_time)) + "s.yaml";
-
-
-
-//    SaveFile(measurement_data, name, path);
 
 
 

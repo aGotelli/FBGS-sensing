@@ -64,17 +64,17 @@ install(DIRECTORY include/${PROJECT_NAME}
 #)
 
 
-#add_executable(read_and_save_data
-#    read_and_save_data.cpp
-#)
+add_executable(read_and_save_data
+    read_and_save_data.cpp
+)
 
-#target_link_libraries(read_and_save_data
-#    PUBLIC
-#        ${PROJECT_NAME}
-#        debug utilities-debug
-#        optimized utilities
-#        yaml-cpp
-#)
+target_link_libraries(read_and_save_data
+    PUBLIC
+        ${PROJECT_NAME}
+        debug utilities-debug
+        optimized utilities
+        yaml-cpp
+)
 
 
 #add_executable(save_with_mutex

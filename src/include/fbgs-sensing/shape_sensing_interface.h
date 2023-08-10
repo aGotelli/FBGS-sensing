@@ -82,7 +82,6 @@ public:
                           const std::string port_number,
                           std::shared_ptr<const bool> t_stop_demos,
                           std::shared_ptr<const bool> t_start_recording,
-                          const double t_recording_time=0,
                           const double t_frequency=100);
 	
 	// Simple destructor
@@ -114,15 +113,6 @@ public:
 
 
 
-    void getSample(Sample &t_sample)
-    {
-         mutex.lock();
-
-         t_sample = m_sample;
-
-         mutex.unlock();
-    }
-
     //    bool fetchDataFromTCPIP(unsigned int &index);
 
     //    Sample processDataAtIndex(const unsigned int index);
@@ -147,17 +137,9 @@ public:
 
 
 
-    double m_recording_time { 0 };
     double m_frequency { 100 };
     double m_dt_ms { (1.0f/m_frequency)*1000 };
-    unsigned int m_total_number_of_steps { static_cast<unsigned int>(m_recording_time*m_frequency) };
 
-
-    real_time_tools::Spinner m_spinner {[this](){
-        real_time_tools::Spinner spinner;
-        spinner.set_frequency(100*m_frequency);
-        return spinner;
-    }()};
 
 
 
@@ -166,28 +148,12 @@ public:
     std::shared_ptr<const bool> m_start_recording { nullptr };
 
 
-//    std::vector<std::string> m_data_stack {
-//        std::vector<std::string>(m_total_number_of_steps)
-//    };
-
-//    std::vector<boost::asio::streambuf> m_buffers_stack {
-//        std::vector<boost::asio::streambuf>(m_total_number_of_steps)
-//    };
-
 
     std::thread thread;
     std::chrono::high_resolution_clock::time_point m_start;
 
-    std::deque<Sample> m_samples_stack /*{
-        std::vector<Sample>(m_total_number_of_steps)
-    }*/;
+    std::deque<Sample> m_samples_stack;
 
-    Sample m_sample;
 
-    std::mutex mutex;
-
-//    std::vector<std::chrono::high_resolution_clock::time_point> m_time_stamps {
-//        std::vector<std::chrono::high_resolution_clock::time_point>(m_total_number_of_steps)
-//    };
 };
 
