@@ -1,6 +1,6 @@
-number_of_snapshots: 601
+number_of_snapshots: 597
 frequency: 100
-duration: 11.994288943
+duration: 11.982366958
 number_of_sensors: 1
 data_storage: colmajor
 data_order:
