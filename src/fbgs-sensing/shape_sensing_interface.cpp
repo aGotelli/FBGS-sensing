@@ -141,8 +141,8 @@ void ShapeSensingInterface::recordingLoop()
             if(*m_start_recording){
                 m_samples_stack.push_back( sample );
 
-                std::cout << "Sample number : " << m_samples_stack[m_samples_stack.size()-1].sample_number << "\r";
-                std::cout.flush();
+//                std::cout << "Sample number : " << m_samples_stack[m_samples_stack.size()-1].sample_number << "\r";
+//                std::cout.flush();
             }
 
         }
