@@ -106,8 +106,7 @@ public:
 
     void startRecordinLoop()
     {
-         thread = std::thread([&](){recordingLoop();});
-
+        thread = std::thread([&](){recordingLoop();});
 
     }
 

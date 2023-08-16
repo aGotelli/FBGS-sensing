@@ -5,7 +5,9 @@ Copyright (C) 2022 Sven Lilge, Continuum Robotics Laboratory, University of Toro
 
 #include "fbgs-sensing/shape_sensing_interface.h"
 
+#include <chrono>
 
+using namespace std::chrono;
 
 
 
@@ -147,6 +149,8 @@ void ShapeSensingInterface::recordingLoop()
 
         }
 
+//        std::this_thread::sleep_for(10ms);
+
 
     }
 }
@@ -174,6 +178,7 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
             //Now read the remaining ASCII string of the current data package
             size_read = boost::asio::read(m_socket,data,boost::asio::transfer_exactly(size));
 
+//            rt_printf("transfer_exactly");
 
             std::string data_string;
             std::istream is(&data);
@@ -196,6 +201,8 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
             //Next string is number of channels
             getline(is,data_string, '\t');
             sample.num_channels = std::stoi(data_string);
+
+//            rt_printf("topology");
 
             //Now we run through all channels
             for(int i = 0; i < sample.num_channels; i++)
@@ -237,6 +244,8 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
                 }
 
                 sample.channels.push_back(channel);
+
+//                rt_printf("channel : %i", i);
 
             }
 
@@ -321,6 +330,8 @@ bool ShapeSensingInterface::readNextSample(Sample &sample)
                 sample.sensors.push_back(sensor);
 
                 num_sensors++;
+
+//                rt_printf("sensor %i", num_sensors);
             }
 
             sample.num_sensors = num_sensors;
