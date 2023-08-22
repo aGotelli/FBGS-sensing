@@ -19,7 +19,6 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC
         Eigen3::Eigen
         ${Boost_LIBRARIES}
-        real_time_tools::real_time_tools
         yaml-cpp
 )
 
