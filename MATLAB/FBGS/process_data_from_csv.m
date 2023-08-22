@@ -15,7 +15,7 @@ Hz = 100;
 path = "../../data/" + num2str(Hz) + "Hz/two_sensors/";
 
 
-samples_data = load("../../data/100Hz/two_sensors/FBGS_data.csv");
+samples_data = load("../../data/100Hz/prova_new_interface/FBGS_data.csv");
 
 
 samples_numbers = samples_data(1,:);

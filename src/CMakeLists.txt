@@ -20,6 +20,7 @@ target_link_libraries(${PROJECT_NAME}
         Eigen3::Eigen
         ${Boost_LIBRARIES}
         real_time_tools::real_time_tools
+        yaml-cpp
 )
 
 
@@ -36,31 +37,31 @@ install(DIRECTORY include/${PROJECT_NAME}
 
 
 
-add_executable(main
-    main.cpp
-)
+#add_executable(main
+#    main.cpp
+#)
 
-target_link_libraries(main
-    PUBLIC
-        ${PROJECT_NAME}
-        debug utilities-debug
-        optimized utilities
-        yaml-cpp
-)
+#target_link_libraries(main
+#    PUBLIC
+#        ${PROJECT_NAME}
+#        debug utilities-debug
+#        optimized utilities
+#        yaml-cpp
+#)
 
-add_executable(test_tcpip_connection
-    test_tcpip_connection.cpp
-)
+#add_executable(test_tcpip_connection
+#    test_tcpip_connection.cpp
+#)
 
-target_link_libraries(test_tcpip_connection
-    PUBLIC
-    Eigen3::Eigen
-    ${Boost_LIBRARIES}
-    real_time_tools::real_time_tools
-    utilities
-    Qt5::Widgets
-    Qt5::Charts
-)
+#target_link_libraries(test_tcpip_connection
+#    PUBLIC
+#    Eigen3::Eigen
+#    ${Boost_LIBRARIES}
+#    real_time_tools::real_time_tools
+#    utilities
+#    Qt5::Widgets
+#    Qt5::Charts
+#)
 
 
 add_executable(read_and_save_data
@@ -76,14 +77,14 @@ target_link_libraries(read_and_save_data
 )
 
 
-add_executable(save_with_mutex
-    save_with_mutex.cpp
-)
+#add_executable(save_with_mutex
+#    save_with_mutex.cpp
+#)
 
-target_link_libraries(save_with_mutex
-    PUBLIC
-        ${PROJECT_NAME}
-        debug utilities-debug
-        optimized utilities
-        yaml-cpp
-)
+#target_link_libraries(save_with_mutex
+#    PUBLIC
+#        ${PROJECT_NAME}
+#        debug utilities-debug
+#        optimized utilities
+#        yaml-cpp
+#)
