@@ -42,99 +42,20 @@ std::shared_ptr<bool> start_recording =
 
 
 
-void checkPathAndCreateFolders(const std::filesystem::path& t_path)
-{
-    std::filesystem::path existing_path = t_path;
+void checkPathAndCreateFolders(const std::filesystem::path& t_path);
 
-    while(not std::filesystem::exists(existing_path))
-        existing_path = existing_path.parent_path();
 
-    auto path_to_create = std::filesystem::relative(t_path, existing_path);
-
-    for(const auto& folder : path_to_create){
-        existing_path = existing_path / folder;
-        std::filesystem::create_directory(existing_path);
-    }
-}
+std::string findCMakeLists(const std::filesystem::path& directory=std::filesystem::current_path());
 
 
 
-
-
-
-std::string findCMakeLists(const std::filesystem::path& directory=std::filesystem::current_path())
-{
-
-    std::filesystem::path cmakeListsPath = directory / "CMakeLists.txt";
-    if (std::filesystem::exists(cmakeListsPath)) {
-        return directory.string() + "/";
-    } else {
-        std::filesystem::path parentPath = directory.parent_path();
-        if (!parentPath.empty()) {
-            return findCMakeLists(parentPath);
-        }
-    }
-    return "";
-}
-
-
-
-YAML::Node matrixToYamlNode(const Eigen::MatrixXd &t_matrix)
-{
-    // Create a YAML node
-    YAML::Node node;
-    node["matrix"]["storage"] = "colmajor";
-    node["matrix"]["rows"] = static_cast<int>(t_matrix.rows());
-    node["matrix"]["cols"] = static_cast<int>(t_matrix.cols());
-
-    // Convert Eigen matrix to a nested sequence in YAML
-    for (int col = 0; col < t_matrix.cols(); col++) {
-        for (int row = 0; row < t_matrix.rows(); row++) {
-            node["matrix"]["data"].push_back(t_matrix(row, col));
-        }
-    }
-
-    return node;
-}
+YAML::Node matrixToYamlNode(const Eigen::MatrixXd &t_matrix);
 
 
 void SaveFile(const YAML::Node t_file,
               const std::string t_file_name,
               std::string t_path,
-              const bool t_use_project_root=true)
-{
-    if(not t_path.empty()){
-        //  Ensure relative path ends with a backslash only if a path is given
-        if(not t_path.ends_with('/'))
-            t_path.append("/");
-    }
-
-    if(t_use_project_root)
-        t_path = findCMakeLists() + t_path;
-
-
-    //  Ensure that path exists otherwise create it
-    checkPathAndCreateFolders(t_path);
-    //    if(not std::filesystem::exists(t_path))
-    //        std::filesystem::create_directory(t_path);
-
-
-
-
-    //  The file will be created in the location given by the realtive path and with the given name
-    const auto file_name_and_location = t_path + t_file_name;
-
-
-    //  Create file in given location with given name
-    std::ofstream file(file_name_and_location.c_str());
-
-    //  Put matrix in this file
-    file << t_file;
-
-    //  Close the file
-    file.close();
-}
-
+              const bool t_use_project_root=true);
 
 
 
@@ -142,42 +63,7 @@ void writeToFile(std::string t_file_name,
                  const Eigen::MatrixXd &t_matrix,
                  std::string t_path,
                  const bool t_use_project_root=true,
-                 const Eigen::IOFormat &t_format=Eigen::IOFormat(16, 0, ","))
-{
-    if(not t_path.empty()){
-        //  Ensure relative path ends with a backslash only if a path is given
-        if(not t_path.ends_with('/'))
-            t_path.append("/");
-    }
-
-    if(t_use_project_root)
-        t_path = findCMakeLists() + t_path;
-
-
-    //  Ensure that path exists otherwise create it
-    checkPathAndCreateFolders(t_path);
-
-
-
-    //  Ensure it ends with .csv
-    if(t_file_name.find(".csv") == std::string::npos)
-        t_file_name.append(".csv");
-
-    //  The file will be created in the location given by the realtive path and with the given name
-    const auto file_name_and_location = t_path + t_file_name;
-
-    std::filesystem::path output_path(file_name_and_location);
-    std::filesystem::create_directories(output_path.parent_path());
-
-    //  Create file in given location with given name
-    std::ofstream file(file_name_and_location.c_str());
-
-    //  Put matrix in this file
-    file << t_matrix.format(t_format);
-
-    //  Close the file
-    file.close();
-}
+                 const Eigen::IOFormat &t_format=Eigen::IOFormat(16, 0, ","));
 
 
 
@@ -265,4 +151,148 @@ int main(int, char **)
     return 0;
 
 }
+
+
+
+
+
+void checkPathAndCreateFolders(const std::filesystem::path& t_path)
+{
+    std::filesystem::path existing_path = t_path;
+
+    while(not std::filesystem::exists(existing_path))
+        existing_path = existing_path.parent_path();
+
+    auto path_to_create = std::filesystem::relative(t_path, existing_path);
+
+    for(const auto& folder : path_to_create){
+        existing_path = existing_path / folder;
+        std::filesystem::create_directory(existing_path);
+    }
+}
+
+
+
+
+
+
+std::string findCMakeLists(const std::filesystem::path& directory)
+{
+
+    std::filesystem::path cmakeListsPath = directory / "CMakeLists.txt";
+    if (std::filesystem::exists(cmakeListsPath)) {
+        return directory.string() + "/";
+    } else {
+        std::filesystem::path parentPath = directory.parent_path();
+        if (!parentPath.empty()) {
+            return findCMakeLists(parentPath);
+        }
+    }
+    return "";
+}
+
+
+
+YAML::Node matrixToYamlNode(const Eigen::MatrixXd &t_matrix)
+{
+    // Create a YAML node
+    YAML::Node node;
+    node["matrix"]["storage"] = "colmajor";
+    node["matrix"]["rows"] = static_cast<int>(t_matrix.rows());
+    node["matrix"]["cols"] = static_cast<int>(t_matrix.cols());
+
+    // Convert Eigen matrix to a nested sequence in YAML
+    for (int col = 0; col < t_matrix.cols(); col++) {
+        for (int row = 0; row < t_matrix.rows(); row++) {
+            node["matrix"]["data"].push_back(t_matrix(row, col));
+        }
+    }
+
+    return node;
+}
+
+
+void SaveFile(const YAML::Node t_file,
+              const std::string t_file_name,
+              std::string t_path,
+              const bool t_use_project_root)
+{
+    if(not t_path.empty()){
+        //  Ensure relative path ends with a backslash only if a path is given
+        if(not t_path.ends_with('/'))
+            t_path.append("/");
+    }
+
+    if(t_use_project_root)
+        t_path = findCMakeLists() + t_path;
+
+
+    //  Ensure that path exists otherwise create it
+    checkPathAndCreateFolders(t_path);
+    //    if(not std::filesystem::exists(t_path))
+    //        std::filesystem::create_directory(t_path);
+
+
+
+
+    //  The file will be created in the location given by the realtive path and with the given name
+    const auto file_name_and_location = t_path + t_file_name;
+
+
+    //  Create file in given location with given name
+    std::ofstream file(file_name_and_location.c_str());
+
+    //  Put matrix in this file
+    file << t_file;
+
+    //  Close the file
+    file.close();
+}
+
+
+
+
+void writeToFile(std::string t_file_name,
+                 const Eigen::MatrixXd &t_matrix,
+                 std::string t_path,
+                 const bool t_use_project_root,
+                 const Eigen::IOFormat &t_format)
+{
+    if(not t_path.empty()){
+        //  Ensure relative path ends with a backslash only if a path is given
+        if(not t_path.ends_with('/'))
+            t_path.append("/");
+    }
+
+    if(t_use_project_root)
+        t_path = findCMakeLists() + t_path;
+
+
+    //  Ensure that path exists otherwise create it
+    checkPathAndCreateFolders(t_path);
+
+
+
+    //  Ensure it ends with .csv
+    if(t_file_name.find(".csv") == std::string::npos)
+        t_file_name.append(".csv");
+
+    //  The file will be created in the location given by the realtive path and with the given name
+    const auto file_name_and_location = t_path + t_file_name;
+
+    std::filesystem::path output_path(file_name_and_location);
+    std::filesystem::create_directories(output_path.parent_path());
+
+    //  Create file in given location with given name
+    std::ofstream file(file_name_and_location.c_str());
+
+    //  Put matrix in this file
+    file << t_matrix.format(t_format);
+
+    //  Close the file
+    file.close();
+}
+
+
+
 
