@@ -1,0 +1,16 @@
+number_of_snapshots: 449
+frequency: 100
+duration: 10.860210657
+number_of_sensors: 1
+data_storage: colmajor
+data_order:
+  0: sample_number
+  1: time_stamp
+  2: number_of_sensors
+  number_of_points_per_sensors:
+    - number_of_datapoints
+  sensors_data:
+    - arc_length_coordinates
+    - x_positions
+    - y_positions
+    - z_positions

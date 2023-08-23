@@ -106,11 +106,16 @@ int main(int, char **)
 
 
 
-    for(int i=5; i>=0; i--){
-        std::cout << "Starting recording in : " << i << " s\r";
-        std::cout.flush();
-        std::this_thread::sleep_for(std::chrono::duration(std::chrono::seconds(1)));
-    }
+
+
+//    for(int i=5; i>=0; i--){
+//        std::cout << "Starting recording in : " << i << " s\r";
+//        std::cout.flush();
+//        std::this_thread::sleep_for(std::chrono::duration(std::chrono::seconds(1)));
+//    }
+
+    std::cout << "Input to start" << std::endl;
+    getchar();
 
     *start_recording = true;
     std::cout << "\n\n";
