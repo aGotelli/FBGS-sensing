@@ -12,10 +12,10 @@ save_figure_format = ".png";
 
 
 Hz = 100;
-path = "../../data/" + num2str(Hz) + "Hz/prova_new_interface/";
+path = "../../data/" + num2str(Hz) + "Hz/long_measurements/";
 
 
-samples_data = load("../../data/100Hz/prova_new_interface/FBGS_data.csv");
+samples_data = load("../../data/100Hz/long_measurements/FBGS_data.csv");
 
 
 samples_numbers = samples_data(1,:);

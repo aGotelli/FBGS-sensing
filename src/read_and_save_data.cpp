@@ -120,7 +120,7 @@ int main(int, char **)
     *start_recording = true;
     std::cout << "\n\n";
 
-    for(int i=5; i>=0; i--){
+    for(int i=30; i>=0; i--){
         std::cout << "Recording : " << i << " s\r";
         std::cout.flush();
         std::this_thread::sleep_for(std::chrono::duration(std::chrono::seconds(1)));
@@ -141,7 +141,7 @@ int main(int, char **)
 
     interface.getSamplesData(FBGS_node, FBGS_data);
 
-    const std::string path = "data/" + std::to_string(static_cast<int>(recording_frequency)) + "Hz/prova_new_interface";
+    const std::string path = "data/" + std::to_string(static_cast<int>(recording_frequency)) + "Hz/long_measurements/";
     const std::string name = "simulation_results_" + std::to_string(static_cast<int>(recording_time)) + "s.yaml";
 
 
