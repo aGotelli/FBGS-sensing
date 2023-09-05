@@ -49,8 +49,8 @@ public:
     struct Sensor
     {
         int num_curv_points;
-        Eigen::VectorXd kappa; //num_curv_points x 1 vector
-        Eigen::VectorXd phi; //num_curv_points x 1 vector
+        Eigen::VectorXd kappa;  //num_curv_points x 1 vector
+        Eigen::VectorXd phi;    //num_curv_points x 1 vector
 
         int num_shape_points;
         Eigen::MatrixXd shape; //num_shape_points x 3 matrix
@@ -78,9 +78,7 @@ public:
 //    // Constructor
 //    ShapeSensingInterface(std::string ip_address, std::string port_number);
 
-    ShapeSensingInterface(const std::string ip_address,
-                          const std::string port_number,
-                          std::shared_ptr<const bool> t_stop_demos,
+    ShapeSensingInterface(std::shared_ptr<const bool> t_stop_demos,
                           std::shared_ptr<const bool> t_start_recording,
                           const double t_frequency=100);
 	
@@ -123,9 +121,9 @@ public:
 
     int m_size;
 
-	
-	std::string m_ip_address;
-	std::string m_port_number;
+
+    std::string m_ip_address { "192.168.1.11" };
+    std::string m_port_number { "5001" };
 	bool m_connected;
 			
 	boost::asio::io_context m_io_context;
@@ -137,7 +135,6 @@ public:
 
 
     double m_frequency { 100 };
-    double m_dt_ms { (1.0f/m_frequency)*1000 };
 
 
 

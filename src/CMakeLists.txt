@@ -10,7 +10,7 @@ include_directories(include)
 
 
 add_library(${PROJECT_NAME} SHARED
-#    include/${PROJECT_NAME}/illumisense_interface.h
+    include/${PROJECT_NAME}/illumisense_interface.h
     include/${PROJECT_NAME}/shape_sensing_interface.h
     ${PROJECT_NAME}/illumisense_interface.cpp
     ${PROJECT_NAME}/shape_sensing_interface.cpp

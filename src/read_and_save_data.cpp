@@ -10,17 +10,13 @@
 
 
 #include "fbgs-sensing/shape_sensing_interface.h"
+#include "fbgs-sensing/illumisense_interface.h"
 
 //#include "utilities/Eigen/eigen_io.hpp"
 #include <yaml-cpp/yaml.h>
 #include <filesystem>
 
 
-//#include "matplotlibcpp.h"
-
-//defines
-#define SERVER_ADDRESS "192.168.1.11"
-#define PORT_NUMBER "5001" //Default port number for Shape Sensing
 
 
 std::shared_ptr<bool> StopDemos =
@@ -91,11 +87,13 @@ int main(int, char **)
 
 
 
-    ShapeSensingInterface interface(SERVER_ADDRESS,
-                                    PORT_NUMBER,
-                                    StopDemos,
+//    ShapeSensingInterface interface(StopDemos,
+//                                    start_recording,
+//                                    recording_frequency);
+
+    IllumiSenseInterface interface(StopDemos,
                                     start_recording,
-                                    recording_frequency);
+                                   recording_frequency);
 
 
     if(!interface.connect())
@@ -120,7 +118,7 @@ int main(int, char **)
     *start_recording = true;
     std::cout << "\n\n";
 
-    for(int i=30; i>=0; i--){
+    for(int i=5; i>=0; i--){
         std::cout << "Recording : " << i << " s\r";
         std::cout.flush();
         std::this_thread::sleep_for(std::chrono::duration(std::chrono::seconds(1)));
@@ -141,7 +139,7 @@ int main(int, char **)
 
     interface.getSamplesData(FBGS_node, FBGS_data);
 
-    const std::string path = "data/" + std::to_string(static_cast<int>(recording_frequency)) + "Hz/long_measurements/";
+    const std::string path = "data/" + std::to_string(static_cast<int>(recording_frequency)) + "Hz/illumisense/";
     const std::string name = "simulation_results_" + std::to_string(static_cast<int>(recording_time)) + "s.yaml";
 
 
@@ -151,7 +149,8 @@ int main(int, char **)
     writeToFile("FBGS_data", FBGS_data, path);
 
 
-
+    std::cout << "\n\n\n\n\n\n" "Saved    \n\n\n\n\n\n";
+    std::cout.flush();
 
     return 0;
 

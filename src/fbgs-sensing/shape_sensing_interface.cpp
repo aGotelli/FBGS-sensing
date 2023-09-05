@@ -22,9 +22,7 @@ using namespace std::chrono;
 //}
 
 
-ShapeSensingInterface::ShapeSensingInterface(const std::string ip_address,
-                        const std::string port_number,
-                        std::shared_ptr<const bool> t_stop_demos,
+ShapeSensingInterface::ShapeSensingInterface(std::shared_ptr<const bool> t_stop_demos,
                         std::shared_ptr<const bool> t_start_recording,
                         const double t_frequency) :
     m_resolver(m_io_context),
@@ -33,8 +31,6 @@ ShapeSensingInterface::ShapeSensingInterface(const std::string ip_address,
     m_stop_demos( t_stop_demos ),
     m_start_recording( t_start_recording )
 {
-    m_ip_address = ip_address;
-    m_port_number = port_number;
     m_connected = false;
 
 
@@ -143,15 +139,8 @@ void ShapeSensingInterface::recordingLoop()
             if(*m_start_recording){
                 m_samples_stack.push_back( sample );
 
-//                std::cout << "Sample number : " << m_samples_stack[m_samples_stack.size()-1].sample_number << "\r";
-//                std::cout.flush();
             }
-
         }
-
-//        std::this_thread::sleep_for(10ms);
-
-
     }
 }
 
@@ -359,14 +348,30 @@ void ShapeSensingInterface::extracted(Sample const &sample,
 
         unsigned int sensor_shape_points = sensor.num_shape_points;
 
+        //  Arc length coordinates
         sample_data.block(index, 0, sensor_shape_points, 1)
             << sensor.arc_length;
 
         index += sensor_shape_points;
 
+        //  Curvature
+        sample_data.block(index, 0, sensor_shape_points, 1)
+            << sensor.kappa;
+
+        index += sensor_shape_points;
+
+
+        //  Curvature angle
+        sample_data.block(index, 0, sensor_shape_points, 1)
+            << sensor.phi;
+
+        index += sensor_shape_points;
+
+
+
+        //  All the x-y-z point in a column major order
         Eigen::VectorXd shape_vector = Eigen::Map<Eigen::VectorXd>(
             sensor.shape.data(), sensor.shape.size());
-
         sample_data.block(index, 0, sensor_shape_points * 3, 1) << shape_vector;
 
         index += sensor_shape_points * 3;
@@ -385,6 +390,8 @@ void ShapeSensingInterface::getSamplesData(YAML::Node &t_FBGS_node, Eigen::Matri
           - number_of_datapoints
         sensors_data:
           - arc_length_coordinates
+          - curvature
+          - curvature angle
           - x_positions
           - y_positions
           - z_positions
@@ -399,8 +406,8 @@ void ShapeSensingInterface::getSamplesData(YAML::Node &t_FBGS_node, Eigen::Matri
         //  Add row for sensor number of points
         number_of_rows++;
 
-        // Add rows for sensor arc length, x, y and z positions
-        number_of_rows += num_shape_points*4;
+        // Add rows for sensor arc length, curvature, curvature angle, x, y and z positions
+        number_of_rows += num_shape_points*6;
     }
 
     unsigned int number_of_columns = m_samples_stack.size();
@@ -409,8 +416,11 @@ void ShapeSensingInterface::getSamplesData(YAML::Node &t_FBGS_node, Eigen::Matri
 
     t_FBGS_data = Eigen::MatrixXd(number_of_rows, number_of_columns);
 
-
+    std::chrono::high_resolution_clock::duration time_since_start;
     for(unsigned int col=0; const auto& sample : m_samples_stack){
+
+        time_since_start = sample.time_stamp - m_start;
+
 
         Eigen::VectorXd sample_data(number_of_rows);
 
@@ -419,7 +429,7 @@ void ShapeSensingInterface::getSamplesData(YAML::Node &t_FBGS_node, Eigen::Matri
 
         unsigned int index = 0;
         sample_data.block<3, 1>(0, 0) <<sample.sample_number,
-                                        sample.time_stamp.time_since_epoch().count(),
+                                        time_since_start.count() / 1e9,
                                         sample.num_sensors;
 
         index += 3;
